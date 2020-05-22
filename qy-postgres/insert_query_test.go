@@ -13,6 +13,20 @@ import (
 	"github.com/matryer/is"
 )
 
+type TestAddress struct {
+	AddressID  int
+	Valid      bool
+	Address    string
+	Address2   string
+	District   string
+	PostalCode string
+	Phone      string
+	CityID     int
+	City       string
+	CountryID  int
+	Country    string
+}
+
 type TestCustomer struct {
 	Valid      bool
 	CustomerID int
@@ -20,7 +34,7 @@ type TestCustomer struct {
 	FirstName  string
 	LastName   string
 	Email      string
-	AddressID  int
+	Address    TestAddress
 	Active     bool
 	CreateDate time.Time
 	LastUpdate time.Time
@@ -128,7 +142,10 @@ func TestInsertTemp1(t *testing.T) {
 			FirstName:  row.String(cust.FIRST_NAME),
 			LastName:   row.String(cust.LAST_NAME),
 			Email:      row.String(cust.EMAIL),
-			AddressID:  row.Int(cust.ADDRESS_ID),
+			Address: TestAddress{
+				Valid:     row.IntValid(cust.ADDRESS_ID),
+				AddressID: row.Int(cust.ADDRESS_ID),
+			},
 			Active:     row.Bool(cust.ACTIVEBOOL),
 			CreateDate: row.Time(cust.CREATE_DATE),
 			LastUpdate: row.Time(cust.LAST_UPDATE),

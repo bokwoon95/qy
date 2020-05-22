@@ -1,5 +1,21 @@
 package qy
 
+import (
+	"fmt"
+	"os"
+
+	"github.com/DATA-DOG/go-txdb"
+)
+
+func init() {
+	if databaseURL := os.Getenv("POSTGRES_URL"); databaseURL == "" {
+		fmt.Println("ey:", databaseURL)
+		panic("POSTGRES_URL environment variable not set or empty. Please source the .env file in testdata/ and export the $POSTGRES_URL environment variable.")
+	} else {
+		txdb.Register("txdb", "postgres", os.Getenv("POSTGRES_URL"))
+	}
+}
+
 // import (
 // 	"database/sql"
 // 	"fmt"
