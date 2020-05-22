@@ -1,112 +1,116 @@
 package qy
 
-// import (
-// 	"database/sql"
-// 	"fmt"
-// 	"log"
-// 	"math"
-// 	"os"
-// 	"testing"
-//
-// 	"github.com/bokwoon95/qy/qx"
-// 	"github.com/bokwoon95/qy/tables"
-// 	"github.com/matryer/is"
-// )
-//
-// type TestUser struct {
-// 	Valid    bool
-// 	Uid      int64
-// 	Name     string
-// 	Email    string
-// 	Password sql.NullString
-// }
-//
-// func TestInsertTemp1(t *testing.T) {
-// 	wantQuery, wantArgs := "", []interface{}{}
-//
-// 	applicants := qx.NewCTE("applicants", func() qx.Query {
-// 		u, ur, ura := tables.USERS().As("u"), tables.USER_ROLES().As("ur"), tables.USER_ROLES_APPLICANTS().As("ura")
-// 		return Select(u.UID, ur.URID, u.DISPLAYNAME, u.EMAIL, ura.APPLICATION, ura.DATA).
-// 			From(u).Join(ur, ur.UID.Eq(u.UID)).
-// 			LeftJoin(ura, ura.URID.Eq(ur.URID)).
-// 			Where(ur.ROLE.EqString("applicant"))
-// 	}())
-// 	wantQuery += "WITH applicants AS" +
-// 		" (SELECT u.uid, ur.urid, u.displayname, u.email, ura.application, ura.data" +
-// 		" FROM public.users AS u JOIN public.user_roles AS ur ON ur.uid = u.uid" +
-// 		" LEFT JOIN public.user_roles_applicants AS ura ON ura.urid = ur.urid" +
-// 		" WHERE ur.role = $1)"
-// 	wantArgs = append(wantArgs, "applicant")
-//
-// 	students := qx.NewCTE("students", func() qx.Query {
-// 		u, ur, urs := tables.USERS().As("u"), tables.USER_ROLES().As("ur"), tables.USER_ROLES_STUDENTS().As("urs")
-// 		return Select(u.UID, ur.URID, u.DISPLAYNAME, u.EMAIL, urs.TEAM, urs.DATA).
-// 			From(u).Join(ur, ur.UID.Eq(u.UID)).
-// 			LeftJoin(urs, urs.URID.Eq(ur.URID)).
-// 			Where(ur.ROLE.EqString("student"))
-// 	}())
-// 	wantQuery += ", students AS" +
-// 		" (SELECT u.uid, ur.urid, u.displayname, u.email, urs.team, urs.data" +
-// 		" FROM public.users AS u JOIN public.user_roles AS ur ON ur.uid = u.uid" +
-// 		" LEFT JOIN public.user_roles_students AS urs ON urs.urid = ur.urid" +
-// 		" WHERE ur.role = $2)"
-// 	wantArgs = append(wantArgs, "student")
-//
-// 	advisers := qx.NewCTE("advisers", func() qx.Query {
-// 		u, ur := tables.USERS().As("u"), tables.USER_ROLES().As("ur")
-// 		return Select(u.UID, ur.URID, u.DISPLAYNAME, u.EMAIL).
-// 			From(u).Join(ur, ur.UID.Eq(u.UID)).
-// 			Where(ur.ROLE.EqString("adviser"))
-// 	}())
-// 	wantQuery += ", advisers AS" +
-// 		" (SELECT u.uid, ur.urid, u.displayname, u.email" +
-// 		" FROM public.users AS u JOIN public.user_roles AS ur ON ur.uid = u.uid" +
-// 		" WHERE ur.role = $3)"
-// 	wantArgs = append(wantArgs, "adviser")
-//
-// 	// stu1, stu2 := students.As("stu1"), students.As("stu2")
-// 	q := NewInsertQuery()
-// 	q.Log = log.New(os.Stdout, "", 0)
-// 	u := tables.USERS().As("u")
-// 	q = q.With(qx.CTE{}, applicants, students, advisers).
-// 		InsertInto(u).
-// 		InsertRow(
-// 			u.UID.SetInt(1),
-// 			u.DISPLAYNAME.SetString("aaa"),
-// 			u.EMAIL.SetString("aaa@email.com"),
-// 		).
-// 		InsertRow(
-// 			u.UID.SetInt(2),
-// 			u.DISPLAYNAME.SetString("bbb"),
-// 			u.EMAIL.SetString("bbb@email.com"),
-// 		).
-// 		InsertRow(
-// 			u.UID.SetInt(3),
-// 			u.DISPLAYNAME.SetString("ccc"),
-// 			u.EMAIL.SetString("ccc@email.com"),
-// 		).
-// 		OnConflict(u.EMAIL).
-// 		Where(u.EMAIL.NeString("")).
-// 		DoUpdateSet(
-// 			u.DISPLAYNAME.Set(Excluded(u.DISPLAYNAME)),
-// 		).
-// 		Where(
-// 			u.UID.GtInt(0),
-// 			u.DISPLAYNAME.NeString(""),
-// 		)
-// 	wantQuery += " INSERT INTO public.users AS u (uid, displayname, email)" +
-// 		" VALUES ($4, $5, $6), ($7, $8, $9), ($10, $11, $12)" +
-// 		" ON CONFLICT (email) WHERE email <> $13 DO UPDATE SET" +
-// 		" displayname = EXCLUDED.displayname WHERE u.uid > $14 AND u.displayname <> $15"
-// 	wantArgs = append(wantArgs, 1, "aaa", "aaa@email.com", 2, "bbb", "bbb@email.com",
-// 		3, "ccc", "ccc@email.com", "", 0, "")
-//
-// 	is := is.New(t)
-// 	gotQuery, gotArgs := q.ToSQL()
-// 	is.Equal(wantQuery, gotQuery)
-// 	is.Equal(wantArgs, gotArgs)
-// }
-//
+import (
+	"database/sql"
+	"log"
+	"os"
+	"testing"
+
+	"github.com/bokwoon95/qy/qx"
+	"github.com/bokwoon95/qy/tables-postgres"
+	"github.com/matryer/is"
+)
+
+type TestUser struct {
+	Valid    bool
+	Uid      int64
+	Name     string
+	Email    string
+	Password sql.NullString
+}
+
+func TestInsertTemp1(t *testing.T) {
+	wantQuery, wantArgs := "", []interface{}{}
+
+	A := qx.NewCTE("A", func() qx.Query {
+		coun := tables.COUNTRY().As("coun")
+		return Select(coun.COUNTRY_ID).From(coun).Where(coun.COUNTRY.EqString("Canada"))
+	}())
+	wantQuery += "WITH A AS (SELECT coun.country_id FROM country AS coun WHERE coun.country = $1)"
+	wantArgs = append(wantArgs, "Canada")
+
+	B := qx.NewCTE("B", func() qx.Query {
+		city := tables.CITY()
+		return Select(city.CITY_ID).From(city).Where(Predicatef("? IN (SELECT country_id FROM ?)", city.COUNTRY_ID, A))
+	}())
+	wantQuery += ", B AS (SELECT city.city_id FROM city WHERE city.country_id IN (SELECT country_id FROM A))"
+
+	C := qx.NewCTE("C", func() qx.Query {
+		addr := tables.ADDRESS().As("addr")
+		return Select(addr.ADDRESS_ID).From(addr).Where(Predicatef("? IN (SELECT city_id FROM ?)", addr.CITY_ID, B))
+	}())
+	wantQuery += ", C AS (SELECT addr.address_id FROM address AS addr WHERE addr.city_id IN (SELECT city_id FROM B))"
+
+	D := qx.NewCTE("D", func() qx.Query {
+		cust := tables.CUSTOMER().As("cust")
+		return Select(
+			cust.CUSTOMER_ID,
+			cust.STORE_ID,
+			cust.FIRST_NAME,
+			cust.LAST_NAME,
+			cust.ADDRESS_ID,
+		).From(cust).Where(Predicatef("? IN (SELECT address_id FROM ?)", cust.ADDRESS_ID, C))
+	}())
+	wantQuery += ", D AS (SELECT cust.customer_id, cust.store_id, cust.first_name, cust.last_name, cust.address_id" +
+		" FROM customer AS cust WHERE cust.address_id IN (SELECT address_id FROM C))"
+
+	cust := tables.CUSTOMER().As("cust")
+	q := NewInsertQuery().With(A, B, C, D)
+	q.Log = log.New(os.Stdout, "", 0)
+
+	// v1
+	v1 := q.InsertInto(cust).
+		Columns(cust.CUSTOMER_ID, cust.STORE_ID, cust.FIRST_NAME, cust.LAST_NAME, cust.ADDRESS_ID).
+		Select(
+			Select(
+				D.Get("customer_id"),
+				D.Get("store_id"),
+				D.Get("first_name"),
+				D.Get("last_name"),
+				D.Get("address_id"),
+			).From(D),
+		).
+		OnConflict(cust.CUSTOMER_ID).
+		DoUpdateSet(
+			cust.CUSTOMER_ID.Set(Excluded(cust.CUSTOMER_ID)),
+			cust.STORE_ID.Set(Excluded(cust.STORE_ID)),
+			cust.FIRST_NAME.Set(Excluded(cust.FIRST_NAME)),
+			cust.LAST_NAME.Set(Excluded(cust.LAST_NAME)),
+			cust.ADDRESS_ID.Set(Excluded(cust.ADDRESS_ID)),
+		).
+		Returning(Fieldf("*"))
+	v1WantQuery := wantQuery + " INSERT INTO customer AS cust (customer_id, store_id, first_name, last_name, address_id)" +
+		" SELECT D.customer_id, D.store_id, D.first_name, D.last_name, D.address_id FROM D" +
+		" ON CONFLICT (customer_id) DO UPDATE SET" +
+		" customer_id = EXCLUDED.customer_id" +
+		", store_id = EXCLUDED.store_id" +
+		", first_name = EXCLUDED.first_name" +
+		", last_name = EXCLUDED.last_name" +
+		", address_id = EXCLUDED.address_id" +
+		" RETURNING *"
+	v1WantArgs := wantArgs
+
+	// v2
+	v2 := q.InsertInto(cust).
+		Columns(cust.CUSTOMER_ID, cust.STORE_ID, cust.FIRST_NAME, cust.LAST_NAME, cust.ADDRESS_ID).
+		Values(1, 1, "bob", "the builder", 1).
+		OnConflict(cust.CUSTOMER_ID).
+		DoNothing().
+		Returning(Fieldf("*"))
+	v2WantQuery := wantQuery + " INSERT INTO customer AS cust (customer_id, store_id, first_name, last_name, address_id)" +
+		" VALUES ($2, $3, $4, $5, $6) ON CONFLICT (customer_id) DO NOTHING RETURNING *"
+	v2WantArgs := wantArgs
+	v2WantArgs = append(v2WantArgs, 1, 1, "bob", "the builder", 1)
+
+	is := is.New(t)
+	v1GotQuery, v1GotArgs := v1.ToSQL()
+	is.Equal(v1WantQuery, v1GotQuery)
+	is.Equal(v1WantArgs, v1GotArgs)
+	v2GotQuery, v2GotArgs := v2.ToSQL()
+	is.Equal(v2WantQuery, v2GotQuery)
+	is.Equal(v2WantArgs, v2GotArgs)
+}
+
 // func TestInsertTemp2(t *testing.T) {
 // 	wantQuery, wantArgs := "", []interface{}{}
 //
@@ -149,7 +153,7 @@ package qy
 // 	is.Equal(wantQuery, gotQuery)
 // 	is.Equal(wantArgs, gotArgs)
 // }
-//
+
 // func TestInsertReal(t *testing.T) {
 // 	is := is.New(t)
 // 	db, err := sql.Open("txdb", qx.RandomString(8))
@@ -228,7 +232,7 @@ package qy
 // 	is.NoErr(err)
 // 	is.Equal(len(randStrs), count)
 // }
-//
+
 // func TestInsertNull(t *testing.T) {
 // 	is := is.New(t)
 // 	db, err := sql.Open("txdb", qx.RandomString(8))
