@@ -1,4 +1,9 @@
 #!/bin/bash
+# Prerequisite steps:
+# cd testdata/
+# export $(cat .env | xargs)
+# docker volume rm testdata_postgres_data testdata_mysql_data # get rid of stale data
+# docker-compose up -d
 shopt -s extglob
 set -o allexport; source .env; set +o allexport
 
