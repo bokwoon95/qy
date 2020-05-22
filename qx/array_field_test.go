@@ -152,7 +152,8 @@ func TestArrayField_GameTheNumbers(t *testing.T) {
 	var _ Field = f
 	// Predicates
 	stringify := func(p Predicate) string {
-		return MySQLInterpolateSQL(p.ToSQL(nil))
+		query, args := p.ToSQL(nil)
+		return MySQLInterpolateSQL(query, args...)
 	}
 	f.IsNull()
 	f.IsNotNull()
