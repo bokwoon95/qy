@@ -147,7 +147,7 @@ func Array(slice interface{}) ArrayField {
 
 // SetArray returns a FieldValueSet associating the ArrayField to the value
 // i.e. 'SET field = value'. It only accepts ArrayField.
-func (f ArrayField) SetArray(value ArrayField) FieldValueSet {
+func (f ArrayField) Set(value ArrayField) FieldValueSet {
 	return FieldValueSet{
 		Field: f,
 		Value: value,

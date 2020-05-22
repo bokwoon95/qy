@@ -408,3 +408,17 @@ func TestTernaryPredicate_ToSQL(t *testing.T) {
 		})
 	}
 }
+
+func TestBinaryPredicate_GameTheNumbers(t *testing.T) {
+	custom := CustomPredicate{
+		CustomSprintf: func(string, []interface{}, []string) (string, []interface{}) {
+			return "", nil
+		},
+	}
+	custom.ToSQL(nil)
+	custom.AssertPredicate()
+	VariadicPredicate{}.AssertPredicate()
+	UnaryPredicate{}.AssertPredicate()
+	BinaryPredicate{}.AssertPredicate()
+	TernaryPredicate{}.AssertPredicate()
+}

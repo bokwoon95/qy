@@ -1,7 +1,6 @@
 package qx
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -150,21 +149,10 @@ func (p UnaryPredicate) ToSQL(excludeTableQualifiers []string) (string, []interf
 		p.Field = _NULL
 	}
 	query, args := p.Field.ToSQL(excludeTableQualifiers)
-	switch p.Operator {
-	case PredicateIsNull:
-		return query + " IS NULL", args
-	case PredicateIsNotNull:
-		return query + " IS NOT NULL", args
-	default:
-		return "", nil
-	}
+	return query + " " + string(p.Operator), args
 }
 
 func (p UnaryPredicate) AssertPredicate() {}
-
-func (p UnaryPredicate) String() string {
-	return fmt.Sprint(p.ToSQL(nil))
-}
 
 type BinaryPredicateOperator string
 
@@ -210,10 +198,6 @@ func (p BinaryPredicate) ToSQL(excludeTableQualifiers []string) (string, []inter
 
 func (p BinaryPredicate) AssertPredicate() {}
 
-func (p BinaryPredicate) String() string {
-	return fmt.Sprint(p.ToSQL(nil))
-}
-
 type TernaryPredicateOperator string
 
 const (
@@ -255,7 +239,3 @@ func (p TernaryPredicate) ToSQL(excludeTableQualifiers []string) (string, []inte
 }
 
 func (p TernaryPredicate) AssertPredicate() {}
-
-func (p TernaryPredicate) String() string {
-	return fmt.Sprint(p.ToSQL(nil))
-}

@@ -81,6 +81,12 @@ func TestArrayField_Literal_ToSQL(t *testing.T) {
 			wantArgs := []interface{}{"apple", "banana", "cucumber"}
 			return TT{DESCRIPTION, field, nil, wantQuery, wantArgs}
 		}(),
+		func() TT {
+			DESCRIPTION := "unspported type"
+			field := Array("yeeehaw")
+			wantQuery := "(unknown array type: only []bool/[]float64/[]int64/[]string/[]int slices are supported.)"
+			return TT{DESCRIPTION, field, nil, wantQuery, nil}
+		}(),
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -110,6 +116,14 @@ func TestArrayField_Column_ToSQL(t *testing.T) {
 			return TT{DESCRIPTION, field, nil, wantQuery, nil}
 		}(),
 		func() TT {
+			DESCRIPTION := "respect excludeTableQualifiers"
+			film := FILM()
+			field := film.SPECIAL_FEATURES
+			wantQuery := "special_features"
+			excludeTableQualifiers := []string{film.GetAlias(), film.GetName()}
+			return TT{DESCRIPTION, field, excludeTableQualifiers, wantQuery, nil}
+		}(),
+		func() TT {
 			DESCRIPTION := "ArrayField with table alias (and column alias)"
 			film := FILM().As("f")
 			field := film.SPECIAL_FEATURES.As("speshul_fittures")
@@ -136,7 +150,7 @@ func TestArrayField_Column_ToSQL(t *testing.T) {
 		t.Run(tt.DESCRIPTION, func(t *testing.T) {
 			t.Parallel()
 			is := is.New(t)
-			gotQuery, gotArgs := tt.field.ToSQL(nil)
+			gotQuery, gotArgs := tt.field.ToSQL(tt.excludeTableQualifiers)
 			is.Equal(tt.wantQuery, gotQuery)
 			is.Equal(tt.wantArgs, gotArgs)
 		})
@@ -150,6 +164,8 @@ func TestArrayField_GameTheNumbers(t *testing.T) {
 	is.Equal("", f.GetAlias())
 	is.Equal("special_features", f.GetName())
 	var _ Field = f
+	// Set
+	f.Set(Array([]int{1, 2, 3}))
 	// Predicates
 	stringify := func(p Predicate) string {
 		query, args := p.ToSQL(nil)
