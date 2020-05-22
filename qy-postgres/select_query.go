@@ -45,15 +45,6 @@ func (q SelectQuery) ToSQL() (string, []interface{}) {
 	// WITH
 	q.CTEs.WriteSQL(buf, &args)
 	{ // SELECT
-		// We need to check if the user provided any valid selected in the SELECT
-		// clause (i.e. aggregated ToSQL()s evaluate to a non-empty string). If
-		// there is nothing valid in the SELECT clause, we don't bother with
-		// writing anything SELECT related into the buffer at all. We cannot simply
-		// check len(q.selected) > 0 to validate this, because a non-zero number of
-		// selected may still end up evaluating to an empty string e.g. if the user
-		// passes in all nil. So we write to a temporary buffer first and if
-		// anything was successfully written into the buffer, then we know that
-		// there are valid selected present in the SELECT
 		tempBuf, tempArgs := &strings.Builder{}, []interface{}{}
 		if q.SelectFields.WriteSQLWithAlias(tempBuf, &tempArgs, "", "", nil) {
 			if q.SelectType == "" {
@@ -64,12 +55,8 @@ func (q SelectQuery) ToSQL() (string, []interface{}) {
 			}
 			switch q.SelectType {
 			case qx.SelectTypeDistinctOn:
-				// For SELECT DISTINCT ON, we need to write the distinct selected
-				// first before writing the rest of the selected selected
 				q.DistinctOn.WriteSQL(buf, &args, string(q.SelectType)+" (", ") "+tempBuf.String(), nil)
 			default:
-				// otherwise for SELECT and SELECT DISTINCT we can just write the
-				// selected selected in directly
 				buf.WriteString(string(q.SelectType) + " " + tempBuf.String())
 			}
 			args = append(args, tempArgs...)
