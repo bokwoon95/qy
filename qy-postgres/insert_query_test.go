@@ -111,49 +111,6 @@ func TestInsertTemp1(t *testing.T) {
 	is.Equal(v2WantArgs, v2GotArgs)
 }
 
-// func TestInsertTemp2(t *testing.T) {
-// 	wantQuery, wantArgs := "", []interface{}{}
-//
-// 	q := NewInsertQuery()
-// 	q.Log = log.New(os.Stdout, "", 0)
-// 	u := tables.USERS().As("u")
-// 	q = q.InsertInto(u).
-// 		InsertRow(
-// 			u.UID.SetInt(1),
-// 			u.DISPLAYNAME.SetString("aaa"),
-// 			u.EMAIL.SetString("aaa@email.com"),
-// 		).
-// 		InsertRow(
-// 			u.UID.SetInt(2),
-// 			u.DISPLAYNAME.SetString("bbb"),
-// 			u.EMAIL.SetString("bbb@email.com"),
-// 		).
-// 		InsertRow(
-// 			u.UID.SetInt(3),
-// 			u.DISPLAYNAME.SetString("ccc"),
-// 			u.EMAIL.SetString("ccc@email.com"),
-// 		).
-// 		OnConflictOnConstraint("users_email_key").
-// 		Where(u.EMAIL.NeString("")).
-// 		DoNothing().
-// 		Where(
-// 			u.UID.GtInt(0),
-// 			u.DISPLAYNAME.NeString(""),
-// 		).
-// 		Returning(u.UID, u.DISPLAYNAME, u.EMAIL)
-// 	wantQuery += "INSERT INTO public.users AS u (uid, displayname, email)" +
-// 		" VALUES ($1, $2, $3), ($4, $5, $6), ($7, $8, $9)" +
-// 		" ON CONFLICT ON CONSTRAINT users_email_key DO NOTHING" +
-// 		" RETURNING u.uid, u.displayname, u.email"
-// 	wantArgs = append(wantArgs, 1, "aaa", "aaa@email.com", 2, "bbb", "bbb@email.com",
-// 		3, "ccc", "ccc@email.com")
-//
-// 	is := is.New(t)
-// 	gotQuery, gotArgs := q.ToSQL()
-// 	is.Equal(wantQuery, gotQuery)
-// 	is.Equal(wantArgs, gotArgs)
-// }
-
 // func TestInsertReal(t *testing.T) {
 // 	is := is.New(t)
 // 	db, err := sql.Open("txdb", qx.RandomString(8))

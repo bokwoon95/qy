@@ -77,10 +77,10 @@ func TestSelectQuery_With(t *testing.T) {
 			Where(Predicatef("? IN (?)", cate.NAME, []string{"Action", "Animation", "Children"}))
 	}())
 	wantQuery += ", kids_films AS" +
-		" (SELECT film.title, film.release_year, category.name" +
+		" (SELECT film.title, film.release_year, cate.name" +
 		" FROM film JOIN film_category AS fica ON fica.film_id = film.film_id" +
 		" LEFT JOIN category AS cate ON cate.category_id = fica.category_id" +
-		" WHERE cate.name IN ($5, $6, $7)"
+		" WHERE cate.name IN ($5, $6, $7))"
 	wantArgs = append(wantArgs, "Action", "Animation", "Children")
 
 	films_stores := qx.NewCTE("films_stores", func() qx.Query {
@@ -142,7 +142,7 @@ func TestSelectQuery_Select(t *testing.T) {
 			DESCRIPTION := "multiple select calls also work"
 			cust := tables.CUSTOMER()
 			q := baseSelect.Select(cust.FIRST_NAME).Select(cust.LAST_NAME).Select(cust.EMAIL)
-			wantQuery := "SELECT u.uid, u.displayname, u.email"
+			wantQuery := "SELECT customer.first_name, customer.last_name, customer.email"
 			return TT{DESCRIPTION, q, wantQuery, nil}
 		}(),
 		func() TT {
@@ -192,7 +192,7 @@ func TestSelectQuery_From(t *testing.T) {
 			DESCRIPTION := "no table alias"
 			cust := tables.CUSTOMER()
 			q := baseSelect.From(cust).Select(cust.CUSTOMER_ID)
-			wantQuery := "SELECT customer FROM customer"
+			wantQuery := "SELECT customer.customer_id FROM customer"
 			return TT{DESCRIPTION, q, wantQuery, nil}
 		}(),
 		func() TT {
@@ -247,7 +247,7 @@ func TestSelectQuery_Joins(t *testing.T) {
 			subquery := Select(cust.ADDRESS_ID).From(cust).Where(cust.STORE_ID.GtInt(4)).As("subquery")
 			q := baseSelect.From(addr).Join(subquery, subquery.Get("address_id").Eq(addr.ADDRESS_ID))
 			wantQuery := "FROM address AS addr" +
-				" JOIN (SELECT cust.address_id FROM customer AS cust WHERE cust.store_id > ?) AS subquery" +
+				" JOIN (SELECT cust.address_id FROM customer AS cust WHERE cust.store_id > $1) AS subquery" +
 				" ON subquery.address_id = addr.address_id"
 			return TT{DESCRIPTION, q, wantQuery, []interface{}{4}}
 		}(),
@@ -257,7 +257,7 @@ func TestSelectQuery_Joins(t *testing.T) {
 			subquery := Select(cust.ADDRESS_ID).From(cust).Where(cust.STORE_ID.GtInt(4))
 			q := baseSelect.From(addr).Join(subquery, subquery.Get("address_id").Eq(addr.ADDRESS_ID))
 			wantQuery := "FROM address AS addr" +
-				" JOIN (SELECT cust.address_id FROM customer AS cust WHERE cust.store_id > ?) AS " + subquery.GetAlias() +
+				" JOIN (SELECT cust.address_id FROM customer AS cust WHERE cust.store_id > $1) AS " + subquery.GetAlias() +
 				" ON " + subquery.GetAlias() + ".address_id = addr.address_id"
 			return TT{DESCRIPTION, q, wantQuery, []interface{}{4}}
 		}(),
@@ -334,7 +334,7 @@ func TestSelectQuery_Where(t *testing.T) {
 				),
 			)
 			wantQuery := "WHERE c1.customer_id = $1 AND c1.first_name ILIKE $2 AND c1.email IS NOT NULL" +
-				" AND (c2.customer_id = $2 OR c2.first_name LIKE $2 OR c2.email IS NULL)"
+				" AND (c2.customer_id = $3 OR c2.first_name LIKE $4 OR c2.email IS NULL)"
 			return TT{DESCRIPTION, q, wantQuery, []interface{}{69, "%bob%", 420, "%virgil%"}}
 		}(),
 	}
@@ -439,7 +439,7 @@ func TestSelectQuery_Having(t *testing.T) {
 				),
 			)
 			wantQuery := "HAVING c1.customer_id = $1 AND c1.first_name ILIKE $2 AND c1.email IS NOT NULL" +
-				" AND (c2.customer_id = $2 OR c2.first_name LIKE $2 OR c2.email IS NULL)"
+				" AND (c2.customer_id = $3 OR c2.first_name LIKE $4 OR c2.email IS NULL)"
 			return TT{DESCRIPTION, q, wantQuery, []interface{}{69, "%bob%", 420, "%virgil%"}}
 		}(),
 	}
