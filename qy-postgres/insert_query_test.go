@@ -2,21 +2,28 @@ package qy
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/bokwoon95/qy/qx"
 	"github.com/bokwoon95/qy/tables-postgres"
 	"github.com/matryer/is"
 )
 
-type TestUser struct {
-	Valid    bool
-	Uid      int64
-	Name     string
-	Email    string
-	Password sql.NullString
+type TestCustomer struct {
+	Valid      bool
+	CustomerID int
+	StoreID    int
+	FirstName  string
+	LastName   string
+	Email      string
+	AddressID  int
+	Active     bool
+	CreateDate time.Time
+	LastUpdate time.Time
 }
 
 func TestInsertTemp1(t *testing.T) {
@@ -103,9 +110,35 @@ func TestInsertTemp1(t *testing.T) {
 	v2WantArgs = append(v2WantArgs, 1, 1, "bob", "the builder", 1)
 
 	is := is.New(t)
+	db, err := sql.Open("txdb", qx.RandomString(8))
+	is.NoErr(err)
+	defer db.Close()
+
 	v1GotQuery, v1GotArgs := v1.ToSQL()
 	is.Equal(v1WantQuery, v1GotQuery)
 	is.Equal(v1WantArgs, v1GotArgs)
+	var customer TestCustomer
+	var customers []TestCustomer
+	err = v1.Returningx(func(row Row) {
+		id := row.NullInt64(cust.CUSTOMER_ID)
+		customer = TestCustomer{
+			Valid:      id.Valid,
+			CustomerID: int(id.Int64),
+			StoreID:    row.Int(cust.STORE_ID),
+			FirstName:  row.String(cust.FIRST_NAME),
+			LastName:   row.String(cust.LAST_NAME),
+			Email:      row.String(cust.EMAIL),
+			AddressID:  row.Int(cust.ADDRESS_ID),
+			Active:     row.Bool(cust.ACTIVEBOOL),
+			CreateDate: row.Time(cust.CREATE_DATE),
+			LastUpdate: row.Time(cust.LAST_UPDATE),
+		}
+	}, func() {
+		customers = append(customers, customer)
+	}).Exec(db)
+	is.NoErr(err)
+	fmt.Println(customers)
+
 	v2GotQuery, v2GotArgs := v2.ToSQL()
 	is.Equal(v2WantQuery, v2GotQuery)
 	is.Equal(v2WantArgs, v2GotArgs)
