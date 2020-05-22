@@ -133,37 +133,37 @@ func TestSelectQuery_Select(t *testing.T) {
 	tests := []TT{
 		func() TT {
 			DESCRIPTION := "basic select"
-			u := tables.USERS().As("u")
-			q := baseSelect.Select(u.UID, u.DISPLAYNAME, u.EMAIL)
-			wantQuery := "SELECT u.uid, u.displayname, u.email"
+			cust := tables.CUSTOMER()
+			q := baseSelect.Select(cust.FIRST_NAME, cust.LAST_NAME, cust.EMAIL)
+			wantQuery := "SELECT customer.first_name, customer.last_name, customer.email"
 			return TT{DESCRIPTION, q, wantQuery, nil}
 		}(),
 		func() TT {
 			DESCRIPTION := "multiple select calls also work"
-			u := tables.USERS().As("u")
-			q := baseSelect.Select(u.UID).Select(u.DISPLAYNAME).Select(u.EMAIL)
+			cust := tables.CUSTOMER()
+			q := baseSelect.Select(cust.FIRST_NAME).Select(cust.LAST_NAME).Select(cust.EMAIL)
 			wantQuery := "SELECT u.uid, u.displayname, u.email"
 			return TT{DESCRIPTION, q, wantQuery, nil}
 		}(),
 		func() TT {
 			DESCRIPTION := "column aliases work"
-			ur := tables.USER_ROLES().As("ur")
-			q := baseSelect.Select(ur.URID, ur.COHORT, ur.ROLE.As("user_role"), ur.CREATED_AT.As("date_created"))
-			wantQuery := "SELECT ur.urid, ur.cohort, ur.role AS user_role, ur.created_at AS date_created"
+			acto := tables.ACTOR()
+			q := baseSelect.Select(acto.FIRST_NAME, acto.ACTOR_ID.As("id"), acto.LAST_UPDATE.As("update"))
+			wantQuery := "SELECT actor.first_name, actor.actor_id AS id, actor.last_update AS update"
 			return TT{DESCRIPTION, q, wantQuery, nil}
 		}(),
 		func() TT {
 			DESCRIPTION := "select distinct"
-			ur := tables.USER_ROLES().As("ur")
-			q := baseSelect.SelectDistinct(ur.URID, ur.COHORT)
-			wantQuery := "SELECT DISTINCT ur.urid, ur.cohort"
+			cust := tables.CUSTOMER().As("cust")
+			q := baseSelect.SelectDistinct(cust.FIRST_NAME, cust.EMAIL)
+			wantQuery := "SELECT DISTINCT cust.first_name, cust.email"
 			return TT{DESCRIPTION, q, wantQuery, nil}
 		}(),
 		func() TT {
 			DESCRIPTION := "select distinct on"
-			ur := tables.USER_ROLES().As("ur")
-			q := baseSelect.SelectDistinctOn(ur.URID, ur.COHORT)(ur.URID, ur.COHORT, ur.UPDATED_AT)
-			wantQuery := "SELECT DISTINCT ON (ur.urid, ur.cohort) ur.urid, ur.cohort, ur.updated_at"
+			cust := tables.CUSTOMER().As("cust")
+			q := baseSelect.SelectDistinctOn(cust.EMAIL, cust.STORE_ID)(cust.FIRST_NAME, cust.LAST_NAME)
+			wantQuery := "SELECT DISTINCT ON (cust.email, cust.store_id) cust.first_name, cust.last_name"
 			return TT{DESCRIPTION, q, wantQuery, nil}
 		}(),
 	}
@@ -189,17 +189,17 @@ func TestSelectQuery_From(t *testing.T) {
 	baseSelect := NewSelectQuery()
 	tests := []TT{
 		func() TT {
-			DESCRIPTION := "fields from unaliased tables are qualified by table name not table alias"
-			u := tables.USERS()
-			q := baseSelect.From(u).Select(u.UID)
-			wantQuery := "SELECT users.uid FROM public.users"
+			DESCRIPTION := "no table alias"
+			cust := tables.CUSTOMER()
+			q := baseSelect.From(cust).Select(cust.CUSTOMER_ID)
+			wantQuery := "SELECT customer FROM customer"
 			return TT{DESCRIPTION, q, wantQuery, nil}
 		}(),
 		func() TT {
-			DESCRIPTION := "but setting an alias for the table manually also works"
-			u := tables.USERS().As("u")
-			q := baseSelect.From(u)
-			wantQuery := "FROM public.users AS u"
+			DESCRIPTION := "with table alias"
+			cust := tables.CUSTOMER().As("cust")
+			q := baseSelect.From(cust).Select(cust.CUSTOMER_ID)
+			wantQuery := "SELECT cust.customer_id FROM customer AS cust"
 			return TT{DESCRIPTION, q, wantQuery, nil}
 		}(),
 	}
@@ -227,18 +227,18 @@ func TestSelectQuery_Joins(t *testing.T) {
 	tests := []TT{
 		func() TT {
 			DESCRIPTION := "all joinGroups"
-			u, ur := tables.USERS().As("u"), tables.USER_ROLES().As("ur")
-			q := baseSelect.From(u).
-				Join(ur, ur.UID.Eq(u.UID)).
-				LeftJoin(ur, ur.UID.Eq(u.UID)).
-				RightJoin(ur, ur.UID.Eq(u.UID)).
-				CrossJoin(ur)
+			cust, addr := tables.CUSTOMER().As("cust"), tables.ADDRESS().As("addr")
+			q := baseSelect.From(cust).
+				Join(addr, addr.ADDRESS_ID.Eq(cust.ADDRESS_ID)).
+				LeftJoin(addr, addr.ADDRESS_ID.Eq(cust.ADDRESS_ID)).
+				RightJoin(addr, addr.ADDRESS_ID.Eq(cust.ADDRESS_ID)).
+				CrossJoin(addr)
 			// You can't join tables with the same alias in SQL, this is just an example
-			wantQuery := "FROM public.users AS u" +
-				" JOIN public.user_roles AS ur ON ur.uid = u.uid" +
-				" LEFT JOIN public.user_roles AS ur ON ur.uid = u.uid" +
-				" RIGHT JOIN public.user_roles AS ur ON ur.uid = u.uid" +
-				" CROSS JOIN public.user_roles AS ur"
+			wantQuery := "FROM customer AS cust" +
+				" JOIN address AS addr ON addr.address_id = cust.address_id" +
+				" LEFT JOIN address AS addr ON addr.address_id = cust.address_id" +
+				" RIGHT JOIN address AS addr ON addr.address_id = cust.address_id" +
+				" CROSS JOIN address AS addr"
 			return TT{DESCRIPTION, q, wantQuery, nil}
 		}(),
 		func() TT {

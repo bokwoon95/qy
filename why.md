@@ -1,3 +1,5 @@
+it's drop in. you don't have to change your db connection with some proprietary struct object from this package
+
 initially borne out of a frustration with the stdlib's NullInt64/NullString. It's super gross when my HTML templates sometimes have {{.Uid}} and sometimes it's {{.Uid.Int64}}. When can you tell which one you must use? You have to trace the HTML template back to go file that seeded the template data. There's not 'jump to definition' for that. Plus HTML templates kind of have non-existent typechecking so you only find errors at runtime. It suuuper doesn't scale.
 
 The alternative is to stick to strings and ints in my structs, and unmarshal possible null values into an intermediate NullInt64/NullString and then populate the struct accordingly. Super verbose, and basically I can't use sqlx's StructScan anymore. And hey, doesn't Go already have perfectly fine 'null' values?! Just give me the zero value! But what if I need to know if I really received an empty string or if it was because it was null? I'll just ask separately instead. And thus the rows.Int/rows.IsNullInt split was born.
