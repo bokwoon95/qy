@@ -40,7 +40,14 @@ type TestCustomer struct {
 	LastUpdate time.Time
 }
 
-func TestInsertTemp1(t *testing.T) {
+func TestInsertMisc1(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	is := is.New(t)
+	db, err := sql.Open("txdb", qx.RandomString(8))
+	is.NoErr(err)
+	defer db.Close()
 	wantQuery, wantArgs := "", []interface{}{}
 
 	A := qx.NewCTE("A", func() qx.Query {
@@ -123,38 +130,56 @@ func TestInsertTemp1(t *testing.T) {
 	v2WantArgs := wantArgs
 	v2WantArgs = append(v2WantArgs, 1, 1, "bob", "the builder", 1)
 
-	is := is.New(t)
-	db, err := sql.Open("txdb", qx.RandomString(8))
-	is.NoErr(err)
-	defer db.Close()
-
 	v1GotQuery, v1GotArgs := v1.ToSQL()
 	is.Equal(v1WantQuery, v1GotQuery)
 	is.Equal(v1WantArgs, v1GotArgs)
 	var customer TestCustomer
 	var customers []TestCustomer
+	var addressID sql.NullInt64
+	var addressIDs []int
 	err = v1.Returningx(func(row Row) {
-		id := row.NullInt64(cust.CUSTOMER_ID)
+		customerID := row.NullInt64(cust.CUSTOMER_ID)
+		addressID = row.NullInt64(cust.ADDRESS_ID)
 		customer = TestCustomer{
-			Valid:      id.Valid,
-			CustomerID: int(id.Int64),
+			Valid:      customerID.Valid,
+			CustomerID: int(customerID.Int64),
 			StoreID:    row.Int(cust.STORE_ID),
 			FirstName:  row.String(cust.FIRST_NAME),
 			LastName:   row.String(cust.LAST_NAME),
 			Email:      row.String(cust.EMAIL),
 			Address: TestAddress{
-				Valid:     row.IntValid(cust.ADDRESS_ID),
-				AddressID: row.Int(cust.ADDRESS_ID),
+				Valid:     addressID.Valid,
+				AddressID: int(addressID.Int64),
 			},
 			Active:     row.Bool(cust.ACTIVEBOOL),
 			CreateDate: row.Time(cust.CREATE_DATE),
 			LastUpdate: row.Time(cust.LAST_UPDATE),
 		}
 	}, func() {
+		addressIDs = append(addressIDs, int(addressID.Int64))
 		customers = append(customers, customer)
 	}).Exec(db)
 	is.NoErr(err)
 	fmt.Println(customers)
+	// check that the addressIDs of all the returned customers point indeed to Canada
+	addr, city, coun := tables.ADDRESS(), tables.CITY(), tables.COUNTRY()
+	var country string
+	s := NewSelectQuery()
+	s.Log = log.New(os.Stdout, "", 0)
+	err = s.From(addr).
+		Join(city, city.CITY_ID.Eq(addr.CITY_ID)).
+		Join(coun, coun.COUNTRY_ID.Eq(city.COUNTRY_ID)).
+		Where(
+			Predicatef("? IN (?)", addr.ADDRESS_ID, addressIDs),
+		).
+		Selectx(func(row Row) {
+			country = row.String(coun.COUNTRY)
+		}, func() {
+			if country != "Canada" {
+				t.Errorf("expected every country returned to be 'Canada'")
+			}
+		}).Exec(db)
+	is.NoErr(err)
 
 	v2GotQuery, v2GotArgs := v2.ToSQL()
 	is.Equal(v2WantQuery, v2GotQuery)
