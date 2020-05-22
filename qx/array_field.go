@@ -5,14 +5,14 @@ import "strings"
 type ArrayField struct {
 	// ArrayField will be one of the following:
 
-	// 1) Literal slice value (only []bool, []float64, []int64 or []string
+	// 1) Literal array value (only []bool, []float64, []int64 or []string
 	// slices are supported.) Nested slices are also not supported even though
 	// both Go and Postgres support nested slices/arrays because I'm not even
 	// sure if it's possible to convert between the two with lib/pq.
 	// Addtionally []int is supported, but note that it only works when
 	// converting from Go slices to Postgres arrays. When converting from
 	// postgres arrays to Go slices, you have to use []int64 instead.
-	// Examples of literal slice values:
+	// Examples of literal array values:
 	// | query             | args                    |
 	// |-------------------|-------------------------|
 	// | ARRAY[?, ?, ?, ?] | 1, 2, 3, 4              |
@@ -34,7 +34,7 @@ type ArrayField struct {
 }
 
 func (f ArrayField) ToSQL(excludeTableQualifiers []string) (string, []interface{}) {
-	// 1) Literal slice value
+	// 1) Literal array value
 	if f.value != nil {
 		var query string
 		var args []interface{}

@@ -66,8 +66,8 @@ func TestSelectQuery_With(t *testing.T) {
 		" FROM customer AS cust JOIN address AS addr ON addr.address_id = cust.address_id" +
 		" LEFT JOIN city ON city.city_id = addr.city_id" +
 		" LEFT JOIN country AS coun ON coun.country_id = city.country_id" +
-		" WHERE coun.country ILIKE ANY (ARRAY[?, ?, ?, ?]))"
-	wantArgs = append(wantArgs, "london", "singapore", "tokyo", "zurich")
+		" WHERE coun.country ILIKE ANY (ARRAY[$1, $2, $3, $4]))"
+	wantArgs = append(wantArgs, "china", "japan", "australia", "korea")
 
 	kids_films := qx.NewCTE("kids_films", func() qx.Query {
 		film, fica, cate := tables.FILM(), tables.FILM_CATEGORY().As("fica"), tables.CATEGORY().As("cate")
@@ -80,7 +80,7 @@ func TestSelectQuery_With(t *testing.T) {
 		" (SELECT film.title, film.release_year, category.name" +
 		" FROM film JOIN film_category AS fica ON fica.film_id = film.film_id" +
 		" LEFT JOIN category AS cate ON cate.category_id = fica.category_id" +
-		" WHERE cate.name IN (?, ?, ?, ?)"
+		" WHERE cate.name IN ($5, $6, $7)"
 	wantArgs = append(wantArgs, "Action", "Animation", "Children")
 
 	films_stores := qx.NewCTE("films_stores", func() qx.Query {
@@ -91,7 +91,7 @@ func TestSelectQuery_With(t *testing.T) {
 			Where(stor.ADDRESS_ID.IsNotNull())
 	}())
 	wantQuery += ", films_stores AS" +
-		" (SELECT film.film_id, file.title, stor.address_id" +
+		" (SELECT film.film_id, film.title, stor.address_id" +
 		" FROM film JOIN inventory AS inve ON inve.film_id = film.film_id" +
 		" JOIN store AS stor ON stor.store_id = inve.store_id" +
 		" WHERE stor.address_id IS NOT NULL)"
@@ -243,26 +243,23 @@ func TestSelectQuery_Joins(t *testing.T) {
 		}(),
 		func() TT {
 			DESCRIPTION := "joining a subquery with explicit alias"
-			ur, c := tables.USER_ROLES().As("ur"), tables.COHORT_ENUM().As("c")
-			latest_cohorts := Select(c.COHORT).From(c).Where(Predicatef("TRIM(?)::INT > ?", c.COHORT, qx.Int(2020))).As("latest_cohorts")
-			q := baseSelect.From(ur).Join(latest_cohorts, latest_cohorts.Get("cohort").Eq(ur.COHORT))
-			wantQuery := "FROM public.user_roles AS ur" +
-				" JOIN (SELECT c.cohort FROM public.cohort_enum AS c WHERE TRIM(c.cohort)::INT > $1) AS latest_cohorts" +
-				" ON latest_cohorts.cohort = ur.cohort"
-			return TT{DESCRIPTION, q, wantQuery, []interface{}{2020}}
+			cust, addr := tables.CUSTOMER().As("cust"), tables.ADDRESS().As("addr")
+			subquery := Select(cust.ADDRESS_ID).From(cust).Where(cust.STORE_ID.GtInt(4)).As("subquery")
+			q := baseSelect.From(addr).Join(subquery, subquery.Get("address_id").Eq(addr.ADDRESS_ID))
+			wantQuery := "FROM address AS addr" +
+				" JOIN (SELECT cust.address_id FROM customer AS cust WHERE cust.store_id > ?) AS subquery" +
+				" ON subquery.address_id = addr.address_id"
+			return TT{DESCRIPTION, q, wantQuery, []interface{}{4}}
 		}(),
 		func() TT {
 			DESCRIPTION := "joining a subquery with implicit alias"
-			ur, c := tables.USER_ROLES().As("ur"), tables.COHORT_ENUM().As("c")
-			latest_cohorts := Select(c.COHORT).From(c).Where(Predicatef("TRIM(?)::INT > ?", c.COHORT, qx.Int(2020)))
-			alias := latest_cohorts.GetAlias()
-			is := is.New(t)
-			is.True(alias != "")
-			q := baseSelect.From(ur).Join(latest_cohorts, latest_cohorts.Get("cohort").Eq(ur.COHORT))
-			wantQuery := "FROM public.user_roles AS ur" +
-				" JOIN (SELECT c.cohort FROM public.cohort_enum AS c WHERE TRIM(c.cohort)::INT > $1) AS " + alias +
-				" ON " + alias + ".cohort = ur.cohort"
-			return TT{DESCRIPTION, q, wantQuery, []interface{}{2020}}
+			cust, addr := tables.CUSTOMER().As("cust"), tables.ADDRESS().As("addr")
+			subquery := Select(cust.ADDRESS_ID).From(cust).Where(cust.STORE_ID.GtInt(4))
+			q := baseSelect.From(addr).Join(subquery, subquery.Get("address_id").Eq(addr.ADDRESS_ID))
+			wantQuery := "FROM address AS addr" +
+				" JOIN (SELECT cust.address_id FROM customer AS cust WHERE cust.store_id > ?) AS " + subquery.GetAlias() +
+				" ON " + subquery.GetAlias() + ".address_id = addr.address_id"
+			return TT{DESCRIPTION, q, wantQuery, []interface{}{4}}
 		}(),
 	}
 	for _, tt := range tests {
@@ -288,56 +285,56 @@ func TestSelectQuery_Where(t *testing.T) {
 	tests := []TT{
 		func() TT {
 			DESCRIPTION := "basic where (implicit and)"
-			u := tables.USERS().As("u")
+			cust := tables.CUSTOMER()
 			q := baseSelect.Where(
-				u.UID.EqInt(22),
-				u.DISPLAYNAME.ILikeString("%bob%"),
-				u.EMAIL.IsNotNull(),
+				cust.CUSTOMER_ID.EqInt(22),
+				cust.FIRST_NAME.ILikeString("%bob%"),
+				cust.EMAIL.IsNotNull(),
 			)
-			wantQuery := "WHERE u.uid = $1 AND u.displayname ILIKE $2 AND u.email IS NOT NULL"
+			wantQuery := "WHERE customer.customer_id = $1 AND customer.first_name ILIKE $2 AND customer.email IS NOT NULL"
 			return TT{DESCRIPTION, q, wantQuery, []interface{}{22, "%bob%"}}
 		}(),
 		func() TT {
 			DESCRIPTION := "basic where (explicit and)"
-			u := tables.USERS().As("u")
+			cust := tables.CUSTOMER()
 			q := baseSelect.Where(
 				qx.And(
-					u.UID.EqInt(22),
-					u.DISPLAYNAME.ILikeString("%bob%"),
-					u.EMAIL.IsNotNull(),
+					cust.CUSTOMER_ID.EqInt(22),
+					cust.FIRST_NAME.ILikeString("%bob%"),
+					cust.EMAIL.IsNotNull(),
 				),
 			)
-			wantQuery := "WHERE u.uid = $1 AND u.displayname ILIKE $2 AND u.email IS NOT NULL"
+			wantQuery := "WHERE customer.customer_id = $1 AND customer.first_name ILIKE $2 AND customer.email IS NOT NULL"
 			return TT{DESCRIPTION, q, wantQuery, []interface{}{22, "%bob%"}}
 		}(),
 		func() TT {
 			DESCRIPTION := "basic where (explicit or)"
-			u := tables.USERS().As("u")
+			cust := tables.CUSTOMER()
 			q := baseSelect.Where(
 				qx.Or(
-					u.UID.EqInt(22),
-					u.DISPLAYNAME.ILikeString("%bob%"),
-					u.EMAIL.IsNotNull(),
+					cust.CUSTOMER_ID.EqInt(22),
+					cust.FIRST_NAME.ILikeString("%bob%"),
+					cust.EMAIL.IsNotNull(),
 				),
 			)
-			wantQuery := "WHERE u.uid = $1 OR u.displayname ILIKE $2 OR u.email IS NOT NULL"
+			wantQuery := "WHERE customer.customer_id = $1 OR customer.first_name ILIKE $2 OR customer.email IS NOT NULL"
 			return TT{DESCRIPTION, q, wantQuery, []interface{}{22, "%bob%"}}
 		}(),
 		func() TT {
 			DESCRIPTION := "complex predicate"
-			u1, u2 := tables.USERS().As("u1"), tables.USERS().As("u2")
+			c1, c2 := tables.CUSTOMER().As("c1"), tables.CUSTOMER().As("c2")
 			q := baseSelect.Where(
-				u1.UID.EqInt(69),
-				u1.DISPLAYNAME.LikeString("%bob%"),
-				u1.EMAIL.IsNull(),
+				c1.CUSTOMER_ID.EqInt(69),
+				c1.FIRST_NAME.ILikeString("%bob%"),
+				c1.EMAIL.IsNotNull(),
 				qx.Or(
-					u2.UID.EqInt(420),
-					u2.DISPLAYNAME.ILikeString("%virgil%"),
-					u2.EMAIL.IsNotNull(),
+					c2.CUSTOMER_ID.EqInt(420),
+					c2.FIRST_NAME.LikeString("%virgil%"),
+					c2.EMAIL.IsNull(),
 				),
 			)
-			wantQuery := "WHERE u1.uid = $1 AND u1.displayname LIKE $2 AND u1.email IS NULL" +
-				" AND (u2.uid = $3 OR u2.displayname ILIKE $4 OR u2.email IS NOT NULL)"
+			wantQuery := "WHERE c1.customer_id = $1 AND c1.first_name ILIKE $2 AND c1.email IS NOT NULL" +
+				" AND (c2.customer_id = $2 OR c2.first_name LIKE $2 OR c2.email IS NULL)"
 			return TT{DESCRIPTION, q, wantQuery, []interface{}{69, "%bob%", 420, "%virgil%"}}
 		}(),
 	}
