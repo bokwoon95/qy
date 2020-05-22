@@ -45,6 +45,8 @@ func TestCTE_GameTheNumbers(t *testing.T) {
 	aliasedcte := cte.As("other_cte")
 	is.Equal("other_cte", aliasedcte.GetAlias())
 	is.Equal("my_cte", aliasedcte.GetName())
+	query, _ = aliasedcte.ToSQL()
+	is.Equal("my_cte", query)
 	query, _ = aliasedcte.Get("xkcd").ToSQL(nil)
 	is.Equal("other_cte.xkcd", query)
 }
