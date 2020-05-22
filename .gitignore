@@ -1,0 +1,7 @@
+.idea/
+/tables-*/
+**/coverage.out
+/testdata/.env
+**/sakila/
+**/sakila.sqlite3
+**/northwind.sqlite3

@@ -1,0 +1,7 @@
+Tests for qx
+Tests for qy
+EXISTS/ NOT EXISTS (qz)
+CASE..WHEN syntax (qz)
+Window Functions (qz/qy?)
+Recursive CTEs
+JSON operations
