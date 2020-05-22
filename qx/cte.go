@@ -47,7 +47,8 @@ type CTEs []CTE
 // CTEs to be written, it will simply write nothing. It returns a flag
 // indicating whether it wrote anything into the buffer.
 func (ctes CTEs) WriteSQL(buf *strings.Builder, args *[]interface{}) (written bool) {
-	ctesQueries, ctesArgs := []string{}, []interface{}{}
+	var ctesQueries []string
+	var ctesArgs []interface{}
 	for i := range ctes {
 		if ctes[i].Query == nil {
 			continue
