@@ -297,6 +297,13 @@ func (f ArrayField) Concat(field ArrayField) Predicate {
 	}
 }
 
+// String implements the fmt.Stringer interface. It returns the string
+// representation of an ArrayField.
+func (f ArrayField) String() string {
+	query, args := f.ToSQL(nil)
+	return MySQLInterpolateSQL(query, args...)
+}
+
 // GetAlias implements the Field interface. It returns the Alias of the
 // ArrayField.
 func (f ArrayField) GetAlias() string {

@@ -1,6 +1,7 @@
 package qx
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/matryer/is"
@@ -103,9 +104,30 @@ func TestArrayField_Column_ToSQL(t *testing.T) {
 	}
 	tests := []TT{
 		func() TT {
-			DESCRIPTION := "empty []bool literal"
-			field := Array([]bool{})
-			wantQuery := "ARRAY[]::BOOLEAN[]"
+			DESCRIPTION := "basic ArrayField"
+			field := FILM().SPECIAL_FEATURES
+			wantQuery := "film.special_features"
+			return TT{DESCRIPTION, field, nil, wantQuery, nil}
+		}(),
+		func() TT {
+			DESCRIPTION := "ArrayField with table alias (and column alias)"
+			film := FILM().As("f")
+			field := film.SPECIAL_FEATURES.As("speshul_fittures")
+			is := is.New(t)
+			is.Equal("speshul_fittures", field.GetAlias())
+			wantQuery := "f.special_features"
+			return TT{DESCRIPTION, field, nil, wantQuery, nil}
+		}(),
+		func() TT {
+			DESCRIPTION := "ArrayField DESC NULLS FIRST"
+			field := FILM().SPECIAL_FEATURES.Desc().NullsFirst()
+			wantQuery := "film.special_features DESC NULLS FIRST"
+			return TT{DESCRIPTION, field, nil, wantQuery, nil}
+		}(),
+		func() TT {
+			DESCRIPTION := "ArrayField ASC NULLS LAST"
+			field := FILM().SPECIAL_FEATURES.Asc().NullsLast()
+			wantQuery := "film.special_features ASC NULLS LAST"
 			return TT{DESCRIPTION, field, nil, wantQuery, nil}
 		}(),
 	}
@@ -119,4 +141,35 @@ func TestArrayField_Column_ToSQL(t *testing.T) {
 			is.Equal(tt.wantArgs, gotArgs)
 		})
 	}
+}
+
+func TestArrayField_GameTheNumbers(t *testing.T) {
+	is := is.New(t)
+	var p Predicate
+	f := FILM().SPECIAL_FEATURES
+	is.Equal("", f.GetAlias())
+	is.Equal("special_features", f.GetName())
+	var _ Field = f
+	// Predicates
+	stringify := func(p Predicate) string {
+		return MySQLInterpolateSQL(p.ToSQL(nil))
+	}
+	f.IsNull()
+	f.IsNotNull()
+	f.Eq(f)
+	f.Ne(f)
+	f.Gt(f)
+	f.Ge(f)
+	f.Lt(f)
+	f.Le(f)
+	p = f.Contains(Array([]string{"Trailers", "Behind the Scenes"}))
+	is.Equal("film.special_features @> ARRAY['Trailers', 'Behind the Scenes']", stringify(p))
+	p = Array([]string{"Trailers", "Behind the Scenes"}).ContainedBy(f)
+	is.Equal("ARRAY['Trailers', 'Behind the Scenes'] <@ film.special_features", stringify(p))
+	p = f.Overlaps(Array([]string{"Trailers", "Behind the Scenes"}))
+	is.Equal("film.special_features && ARRAY['Trailers', 'Behind the Scenes']", stringify(p))
+	p = f.Concat(Array([]string{"Trailers", "Behind the Scenes"}))
+	is.Equal("film.special_features || ARRAY['Trailers', 'Behind the Scenes']", stringify(p))
+	// fmt.Stringer
+	fmt.Println(f)
 }
