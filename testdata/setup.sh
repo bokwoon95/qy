@@ -1,5 +1,7 @@
 #!/bin/bash
 # Prerequisite steps:
+# Download https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/jOOQ/jOOQ/tree/master/jOOQ-examples/Sakila
+# Move unzipped Sakila directory into testdata/ directory
 # cd testdata/
 # export $(cat .env | xargs)
 # docker volume rm testdata_postgres_data testdata_mysql_data # get rid of stale data
