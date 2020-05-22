@@ -139,9 +139,9 @@ func NewArrayField(name string, table *TableInfo) ArrayField {
 }
 
 // Array returns a new ArrayField representing a literal string value.
-func Array(s string) ArrayField {
+func Array(slice interface{}) ArrayField {
 	return ArrayField{
-		value: &s,
+		value: slice,
 	}
 }
 
