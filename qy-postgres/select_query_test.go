@@ -361,9 +361,9 @@ func TestSelectQuery_GroupBy(t *testing.T) {
 	tests := []TT{
 		func() TT {
 			DESCRIPTION := "basic group by"
-			u := tables.USERS().As("u")
-			q := baseSelect.GroupBy(u.UID, u.DISPLAYNAME, u.EMAIL)
-			wantQuery := "GROUP BY u.uid, u.displayname, u.email"
+			cust := tables.CUSTOMER()
+			q := baseSelect.GroupBy(cust.CUSTOMER_ID, cust.STORE_ID, cust.ACTIVE)
+			wantQuery := "GROUP BY customer.customer_id, customer.store_id, customer.active"
 			return TT{DESCRIPTION, q, wantQuery, nil}
 		}(),
 	}
@@ -390,56 +390,56 @@ func TestSelectQuery_Having(t *testing.T) {
 	tests := []TT{
 		func() TT {
 			DESCRIPTION := "basic having (implicit and)"
-			u := tables.USERS().As("u")
+			cust := tables.CUSTOMER()
 			q := baseSelect.Having(
-				u.UID.EqInt(22),
-				u.DISPLAYNAME.ILikeString("%bob%"),
-				u.EMAIL.IsNotNull(),
+				cust.CUSTOMER_ID.EqInt(22),
+				cust.FIRST_NAME.ILikeString("%bob%"),
+				cust.EMAIL.IsNotNull(),
 			)
-			wantQuery := "HAVING u.uid = $1 AND u.displayname ILIKE $2 AND u.email IS NOT NULL"
+			wantQuery := "HAVING customer.customer_id = $1 AND customer.first_name ILIKE $2 AND customer.email IS NOT NULL"
 			return TT{DESCRIPTION, q, wantQuery, []interface{}{22, "%bob%"}}
 		}(),
 		func() TT {
 			DESCRIPTION := "basic having (explicit and)"
-			u := tables.USERS().As("u")
+			cust := tables.CUSTOMER()
 			q := baseSelect.Having(
 				qx.And(
-					u.UID.EqInt(22),
-					u.DISPLAYNAME.ILikeString("%bob%"),
-					u.EMAIL.IsNotNull(),
+					cust.CUSTOMER_ID.EqInt(22),
+					cust.FIRST_NAME.ILikeString("%bob%"),
+					cust.EMAIL.IsNotNull(),
 				),
 			)
-			wantQuery := "HAVING u.uid = $1 AND u.displayname ILIKE $2 AND u.email IS NOT NULL"
+			wantQuery := "HAVING customer.customer_id = $1 AND customer.first_name ILIKE $2 AND customer.email IS NOT NULL"
 			return TT{DESCRIPTION, q, wantQuery, []interface{}{22, "%bob%"}}
 		}(),
 		func() TT {
 			DESCRIPTION := "basic having (explicit or)"
-			u := tables.USERS().As("u")
+			cust := tables.CUSTOMER()
 			q := baseSelect.Having(
 				qx.Or(
-					u.UID.EqInt(22),
-					u.DISPLAYNAME.ILikeString("%bob%"),
-					u.EMAIL.IsNotNull(),
+					cust.CUSTOMER_ID.EqInt(22),
+					cust.FIRST_NAME.ILikeString("%bob%"),
+					cust.EMAIL.IsNotNull(),
 				),
 			)
-			wantQuery := "HAVING u.uid = $1 OR u.displayname ILIKE $2 OR u.email IS NOT NULL"
+			wantQuery := "HAVING customer.customer_id = $1 OR customer.first_name ILIKE $2 OR customer.email IS NOT NULL"
 			return TT{DESCRIPTION, q, wantQuery, []interface{}{22, "%bob%"}}
 		}(),
 		func() TT {
 			DESCRIPTION := "complex predicate"
-			u1, u2 := tables.USERS().As("u1"), tables.USERS().As("u2")
+			c1, c2 := tables.CUSTOMER().As("c1"), tables.CUSTOMER().As("c2")
 			q := baseSelect.Having(
-				u1.UID.EqInt(69),
-				u1.DISPLAYNAME.LikeString("%bob%"),
-				u1.EMAIL.IsNull(),
+				c1.CUSTOMER_ID.EqInt(69),
+				c1.FIRST_NAME.ILikeString("%bob%"),
+				c1.EMAIL.IsNotNull(),
 				qx.Or(
-					u2.UID.EqInt(420),
-					u2.DISPLAYNAME.ILikeString("%virgil%"),
-					u2.EMAIL.IsNotNull(),
+					c2.CUSTOMER_ID.EqInt(420),
+					c2.FIRST_NAME.LikeString("%virgil%"),
+					c2.EMAIL.IsNull(),
 				),
 			)
-			wantQuery := "HAVING u1.uid = $1 AND u1.displayname LIKE $2 AND u1.email IS NULL" +
-				" AND (u2.uid = $3 OR u2.displayname ILIKE $4 OR u2.email IS NOT NULL)"
+			wantQuery := "HAVING c1.customer_id = $1 AND c1.first_name ILIKE $2 AND c1.email IS NOT NULL" +
+				" AND (c2.customer_id = $2 OR c2.first_name LIKE $2 OR c2.email IS NULL)"
 			return TT{DESCRIPTION, q, wantQuery, []interface{}{69, "%bob%", 420, "%virgil%"}}
 		}(),
 	}
@@ -466,23 +466,28 @@ func TestSelectQuery_OrderBy(t *testing.T) {
 	tests := []TT{
 		func() TT {
 			DESCRIPTION := "basic order by"
-			u := tables.USERS().As("u")
-			q := baseSelect.Select().OrderBy(u.UID, u.DISPLAYNAME, u.EMAIL)
-			wantQuery := "ORDER BY u.uid, u.displayname, u.email"
+			cust := tables.CUSTOMER().As("cust")
+			q := baseSelect.Select().OrderBy(cust.CUSTOMER_ID, cust.STORE_ID, cust.ACTIVE)
+			wantQuery := "ORDER BY cust.customer_id, cust.store_id, cust.active"
 			return TT{DESCRIPTION, q, wantQuery, nil}
 		}(),
 		func() TT {
-			DESCRIPTION := "Asc, DESCRIPTION, NullsFirst and NullsLast"
-			u := tables.USERS().As("u")
+			DESCRIPTION := "Asc, Desc, NullsFirst and NullsLast"
+			cust := tables.CUSTOMER().As("cust")
 			q := baseSelect.OrderBy(
-				u.UID,
-				u.UID.Asc(),
-				u.UID.Desc(),
-				u.UID.NullsLast(),
-				u.UID.Asc().NullsFirst(),
-				u.UID.Desc().NullsLast(),
+				cust.CUSTOMER_ID,
+				cust.CUSTOMER_ID.Asc(),
+				cust.CUSTOMER_ID.Desc(),
+				cust.CUSTOMER_ID.NullsLast(),
+				cust.CUSTOMER_ID.Asc().NullsFirst(),
+				cust.CUSTOMER_ID.Desc().NullsLast(),
 			)
-			wantQuery := "ORDER BY u.uid, u.uid ASC, u.uid DESC, u.uid NULLS LAST, u.uid ASC NULLS FIRST, u.uid DESC NULLS LAST"
+			wantQuery := "ORDER BY cust.customer_id" +
+				", cust.customer_id ASC" +
+				", cust.customer_id DESC" +
+				", cust.customer_id NULLS LAST" +
+				", cust.customer_id ASC NULLS FIRST" +
+				", cust.customer_id DESC NULLS LAST"
 			return TT{DESCRIPTION, q, wantQuery, nil}
 		}(),
 	}
