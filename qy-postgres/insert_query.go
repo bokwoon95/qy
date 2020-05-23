@@ -290,7 +290,7 @@ func (q InsertQuery) GetName() string {
 	return ""
 }
 
-func (q InsertQuery) NestThis() qx.Query {
+func (q InsertQuery) GetNested() qx.Query {
 	q.Nested = true
 	return q
 }

@@ -26,5 +26,5 @@ func TestCustomQuery_GameTheNumbers(t *testing.T) {
 	q.As("q")
 	q.GetAlias()
 	q.GetName()
-	q.NestThis()
+	q.GetNested()
 }

@@ -102,7 +102,7 @@ func (q UpdateQuery) GetName() string {
 	return ""
 }
 
-func (q UpdateQuery) NestThis() qx.Query {
+func (q UpdateQuery) GetNested() qx.Query {
 	q.Nested = true
 	return q
 }

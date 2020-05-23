@@ -104,8 +104,8 @@ func (q CustomQuery) GetName() string {
 	return name
 }
 
-// NestThis implements the Query interfaces.
-func (q CustomQuery) NestThis() Query {
+// GetNested implements the Query interfaces.
+func (q CustomQuery) GetNested() Query {
 	q.Nested = true
 	return q
 }
