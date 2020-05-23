@@ -21,7 +21,7 @@ func TestCustomQuery_GameTheNumbers(t *testing.T) {
 			return "", nil
 		},
 	}.ToSQL()
-	q := CustomQuery{}
+	q := CustomQuery{Postgres:true}
 	q.ToSQL()
 	q.As("q")
 	q.GetAlias()
