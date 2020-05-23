@@ -19,7 +19,7 @@ func TestSelectQuery_Get(t *testing.T) {
 		wantArgs    []interface{}
 	}
 	baseSelect := NewSelectQuery()
-	baseSelect.Log = log.New(os.Stdout, "", 0)
+	baseSelect.Log = log.New(os.Stdout, "", log.Lshortfile)
 	tests := []TT{
 		{
 			"SelectQuery Get (explicit alias)",
@@ -223,7 +223,7 @@ func TestSelectQuery_Joins(t *testing.T) {
 		wantArgs    []interface{}
 	}
 	baseSelect := NewSelectQuery()
-	baseSelect.Log = log.New(os.Stdout, "", 0)
+	baseSelect.Log = log.New(os.Stdout, "", log.Lshortfile)
 	tests := []TT{
 		func() TT {
 			DESCRIPTION := "all joinGroups"

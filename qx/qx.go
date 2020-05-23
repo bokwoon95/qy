@@ -67,5 +67,5 @@ type QueryerContext interface {
 
 // Logger is an interface that provides logging.
 type Logger interface {
-	Println(v ...interface{})
+	Output(calldepth int, s string) error
 }

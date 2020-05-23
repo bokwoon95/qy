@@ -3,6 +3,7 @@ package qy
 import (
 	"database/sql"
 	"errors"
+	"log"
 	"strings"
 
 	"github.com/bokwoon95/qy/qx"
@@ -32,7 +33,8 @@ type InsertQuery struct {
 	Mapper          func(Row)
 	Accumulator     func()
 	// Logging
-	Log qx.Logger
+	Log  qx.Logger
+	Skip int
 }
 
 func (q InsertQuery) ToSQL() (string, []interface{}) {
@@ -67,7 +69,7 @@ func (q InsertQuery) ToSQL() (string, []interface{}) {
 	// VALUES/SELECT
 	switch {
 	case len(q.ValuesList) > 0:
-		q.ValuesList.WriteSQL(buf, &args, "VALUES ",  "")
+		q.ValuesList.WriteSQL(buf, &args, "VALUES ", "")
 	case q.SelectQuery != nil:
 		q.SelectQuery.Nested = true
 		selectQuery, selectArgs := q.SelectQuery.ToSQL()
@@ -118,8 +120,13 @@ func (q InsertQuery) ToSQL() (string, []interface{}) {
 	query := buf.String()
 	if !q.Nested {
 		query = qx.MySQLToPostgresPlaceholders(query)
-		if q.Log != nil {
-			q.Log.Println(qx.PostgresInterpolateSQL(query, args...))
+		switch q.Log.(type) {
+		case nil:
+			// do nothing
+		case *log.Logger:
+			q.Log.Output(q.Skip+2, qx.PostgresInterpolateSQL(query, args...))
+		default:
+			q.Log.Output(q.Skip+1, qx.PostgresInterpolateSQL(query, args...))
 		}
 	}
 	return query, args
@@ -247,6 +254,7 @@ func (q InsertQuery) Exec(db qx.Queryer) (err error) {
 	}
 	q.ReturningFields = r.QxRow.Fields // then, transfer the selected collected by *Row to the InsertQuery
 	r.QxRow.Active = true              // mark Row as active i.e.
+	q.Skip += 1
 	query, args := q.ToSQL()
 	rows, err := db.Query(query, args...)
 	if err != nil {

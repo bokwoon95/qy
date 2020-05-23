@@ -84,7 +84,7 @@ func TestInsertMisc1(t *testing.T) {
 
 	cust := tables.CUSTOMER().As("cust")
 	q := NewInsertQuery().With(A, B, C, D)
-	q.Log = log.New(os.Stdout, "", 0)
+	q.Log = log.New(os.Stdout, "", log.Lshortfile)
 
 	// v1
 	v1 := q.InsertInto(cust).
@@ -165,7 +165,7 @@ func TestInsertMisc1(t *testing.T) {
 	addr, city, coun := tables.ADDRESS(), tables.CITY(), tables.COUNTRY()
 	var country string
 	s := NewSelectQuery()
-	s.Log = log.New(os.Stdout, "", 0)
+	s.Log = log.New(os.Stdout, "", log.Lshortfile)
 	err = s.From(addr).
 		Join(city, city.CITY_ID.Eq(addr.CITY_ID)).
 		Join(coun, coun.COUNTRY_ID.Eq(city.COUNTRY_ID)).

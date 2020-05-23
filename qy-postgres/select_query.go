@@ -3,6 +3,7 @@ package qy
 import (
 	"database/sql"
 	"errors"
+	"log"
 	"strings"
 
 	"github.com/bokwoon95/qy/qx"
@@ -36,7 +37,8 @@ type SelectQuery struct {
 	Mapper      func(Row)
 	Accumulator func()
 	// Logging
-	Log qx.Logger
+	Log  qx.Logger
+	Skip int
 }
 
 func (q SelectQuery) ToSQL() (string, []interface{}) {
@@ -113,8 +115,13 @@ func (q SelectQuery) ToSQL() (string, []interface{}) {
 	query := buf.String()
 	if !q.Nested {
 		query = qx.MySQLToPostgresPlaceholders(query)
-		if q.Log != nil {
-			q.Log.Println(qx.PostgresInterpolateSQL(query, args...))
+		switch q.Log.(type) {
+		case nil:
+			// do nothing
+		case *log.Logger:
+			q.Log.Output(q.Skip+2, qx.PostgresInterpolateSQL(query, args...))
+		default:
+			q.Log.Output(q.Skip+1, qx.PostgresInterpolateSQL(query, args...))
 		}
 	}
 	return query, args
@@ -298,6 +305,7 @@ func (q SelectQuery) Exec(db qx.Queryer) (err error) {
 	if noFieldsSpecified {
 		q.SelectFields = append(q.SelectFields, Fieldf("1"))
 	}
+	q.Skip += 1
 	query, args := q.ToSQL()
 	rows, err := db.Query(query, args...)
 	if err != nil {
@@ -330,6 +338,12 @@ func (q SelectQuery) Exec(db qx.Queryer) (err error) {
 		return e
 	}
 	return rows.Err()
+}
+
+func (q SelectQuery) ExecWithLog(db qx.Queryer, log qx.Logger) error {
+	q.Skip += 1
+	q.Log = log
+	return q.Exec(db)
 }
 
 func (q SelectQuery) As(alias string) SelectQuery {
