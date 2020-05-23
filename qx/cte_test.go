@@ -15,7 +15,34 @@ func TestCTE_WriteSQL(t *testing.T) {
 		wantQuery   string
 		wantArgs    []interface{}
 	}
-	tests := []TT{}
+	tests := []TT{
+		func() TT {
+			DESCRIPTION := "basic"
+			ctes := CTEs{
+				CTE{Name: "cte0"},
+				CTE{Name: "cte1", Query: CustomQuery{
+					Format: "Everyone was curious about the large white blimp that appeared overnight.",
+				}},
+				CTE{Name: "cte2", Query: CustomQuery{
+					Format: "They did nothing as the raccoon attacked the lady’s bag of food.",
+				}},
+				CTE{Name: "cte3", Query: CustomQuery{
+					Format: "There can never be too many cherries on an ice cream sundae.",
+				}},
+				CTE{Name: "cte4", Query: CustomQuery{}},
+			}
+			wantQuery := "WITH cte1 AS (Everyone was curious about the large white blimp that appeared overnight.)" +
+				", cte2 AS (They did nothing as the raccoon attacked the lady’s bag of food.)" +
+				", cte3 AS (There can never be too many cherries on an ice cream sundae.)"
+			return TT{DESCRIPTION, ctes, true, wantQuery, nil}
+		}(),
+		func() TT {
+			DESCRIPTION := "nothing"
+			ctes := CTEs{}
+			wantQuery := ""
+			return TT{DESCRIPTION, ctes, false, wantQuery, nil}
+		}(),
+	}
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.DESCRIPTION, func(t *testing.T) {

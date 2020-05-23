@@ -37,7 +37,9 @@ func (cte CTE) GetName() string {
 // to see if the fieldName really exists in the CTE at all, CTE simply prepends
 // its own name to the fieldName.
 func (cte CTE) Get(fieldName string) CustomField {
-	return CustomField{Format: cte.Name + "." + fieldName}
+	return CustomField{
+		Format: cte.Name + "." + fieldName,
+	}
 }
 
 // CTEs represents a list of CTEs
@@ -62,9 +64,6 @@ func (ctes CTEs) WriteSQL(buf *strings.Builder, args *[]interface{}) (written bo
 		ctesArgs = append(ctesArgs, cteArgs...)
 	}
 	if len(ctesQueries) > 0 {
-		if buf.Len() > 0 {
-			buf.WriteString(" ")
-		}
 		buf.WriteString("WITH " + strings.Join(ctesQueries, ", "))
 		*args = append(*args, ctesArgs...)
 		return true
@@ -81,7 +80,10 @@ type AliasedCTE struct {
 // As returns a an Aliased CTE derived from the parent CTE that it was called
 // on.
 func (cte CTE) As(alias string) AliasedCTE {
-	return AliasedCTE{Name: cte.Name, Alias: alias}
+	return AliasedCTE{
+		Name:  cte.Name,
+		Alias: alias,
+	}
 }
 
 // ToSQL returns the name of the parent CTE the AliasedCTE was derived from.
@@ -107,5 +109,7 @@ func (cte AliasedCTE) GetName() string {
 // are done to see if the fieldName really exists in the AliasedCTE at all,
 // AliasedCTE simply prepends its own alias to the fieldName.
 func (cte AliasedCTE) Get(fieldName string) CustomField {
-	return CustomField{Format: cte.Alias + "." + fieldName}
+	return CustomField{
+		Format: cte.Alias + "." + fieldName,
+	}
 }
