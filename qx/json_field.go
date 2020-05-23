@@ -20,6 +20,14 @@ type JSONField struct {
 	nullsfirst *bool
 }
 
+type jsonwrapper struct {
+	value interface{}
+}
+
+func (j jsonwrapper) MarshalJSON() ([]byte, error) {
+	return json.Marshal(j.value)
+}
+
 // ToSQL marshals a JSONField into an SQL query and args (as described in the
 // JSONField internal struct comments). If the JSONField's table name appears
 // in the excludeTableQualifiers list, the output column name will not be table
@@ -27,7 +35,12 @@ type JSONField struct {
 func (f JSONField) ToSQL(excludeTableQualifiers []string) (string, []interface{}) {
 	// 1) Literal JSONable value
 	if f.value != nil {
-		return "?", []interface{}{f.value}
+		switch f.value.(type) {
+		case json.Marshaler:
+			return "?", []interface{}{f.value}
+		default:
+			return "?", []interface{}{jsonwrapper{f.value}}
+		}
 	}
 
 	// 2) JSON column

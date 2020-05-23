@@ -33,9 +33,6 @@ func (tbl CustomTable) As(alias string) CustomTable {
 	return tbl
 }
 
-// AssertTable implements the Table interface.
-func (tbl CustomTable) AssertTable() {}
-
 // GetAlias implements the Table interface. It returns the alias of the
 // CustomTable.
 func (tbl CustomTable) GetAlias() string {
@@ -111,11 +108,4 @@ func (q CustomQuery) GetName() string {
 func (q CustomQuery) NestThis() Query {
 	q.Nested = true
 	return q
-}
-
-// String implements the fmt.Stringer interface.
-func (q CustomQuery) String() string {
-	q.Nested = false
-	query, args := q.ToSQL()
-	return MySQLInterpolateSQL(query, args...)
 }

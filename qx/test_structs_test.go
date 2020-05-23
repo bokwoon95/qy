@@ -2,7 +2,7 @@ package qx
 
 import "database/sql"
 
-// TODO eventually I want to migrate over to Sakila instead
+// TODO: eventually I want to migrate over to Sakila instead
 
 type TestUser struct {
 	Valid    bool
