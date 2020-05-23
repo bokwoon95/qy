@@ -27,6 +27,9 @@ func (f CustomField) ToSQL(excludeTableQualifiers []string) (string, []interface
 	} else {
 		query, args = defaultSprintf(f.Format, f.Values, excludeTableQualifiers)
 	}
+	if query == "" {
+		return "", nil
+	}
 	if f.IsDesc != nil {
 		if *f.IsDesc {
 			query = query + " DESC"
@@ -150,6 +153,21 @@ func (f CustomField) Le(field Field) Predicate {
 		LeftField:  f,
 		RightField: field,
 	}
+}
+
+// In returns an 'A IN (B)' Predicate, where B can be anything.
+func (f CustomField) In(v interface{}) Predicate {
+	return CustomPredicate{
+		Format: "? IN (?)",
+		Values: []interface{}{f, v},
+	}
+}
+
+// String implements the fmt.Stringer interface. It returns the string
+// representation of a CustomField.
+func (f CustomField) String() string {
+	query, args := f.ToSQL(nil)
+	return MySQLInterpolateSQL(query, args...)
 }
 
 // GetAlias implements the Field interface. It returns the alias of thee

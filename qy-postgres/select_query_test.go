@@ -233,7 +233,6 @@ func TestSelectQuery_Joins(t *testing.T) {
 				LeftJoin(addr, addr.ADDRESS_ID.Eq(cust.ADDRESS_ID)).
 				RightJoin(addr, addr.ADDRESS_ID.Eq(cust.ADDRESS_ID)).
 				CrossJoin(addr)
-			// You can't join tables with the same alias in SQL, this is just an example
 			wantQuery := "FROM customer AS cust" +
 				" JOIN address AS addr ON addr.address_id = cust.address_id" +
 				" LEFT JOIN address AS addr ON addr.address_id = cust.address_id" +
@@ -259,6 +258,22 @@ func TestSelectQuery_Joins(t *testing.T) {
 			wantQuery := "FROM address AS addr" +
 				" JOIN (SELECT cust.address_id FROM customer AS cust WHERE cust.store_id > $1) AS " + subquery.GetAlias() +
 				" ON " + subquery.GetAlias() + ".address_id = addr.address_id"
+			return TT{DESCRIPTION, q, wantQuery, []interface{}{4}}
+		}(),
+		func() TT {
+			DESCRIPTION := "select from subquery"
+			cust := tables.CUSTOMER().As("cust")
+			subquery := Select(cust.ADDRESS_ID).From(cust).Where(cust.STORE_ID.GtInt(4)).As("sub")
+			q := baseSelect.From(subquery).Select(subquery.Get("address_id"))
+			wantQuery := "SELECT sub.address_id FROM (SELECT cust.address_id FROM customer AS cust WHERE cust.store_id > $1) AS sub"
+			return TT{DESCRIPTION, q, wantQuery, []interface{}{4}}
+		}(),
+		func() TT {
+			DESCRIPTION := "deeply nested subqueries"
+			cust := tables.CUSTOMER().As("cust")
+			subquery := Select(cust.ADDRESS_ID).From(cust).Where(cust.STORE_ID.GtInt(4)).As("sub")
+			q := baseSelect.From(subquery).Select(subquery.Get("address_id"))
+			wantQuery := "SELECT sub.address_id FROM (SELECT cust.address_id FROM customer AS cust WHERE cust.store_id > $1) AS sub"
 			return TT{DESCRIPTION, q, wantQuery, []interface{}{4}}
 		}(),
 	}

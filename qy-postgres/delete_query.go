@@ -17,7 +17,7 @@ type DeleteQuery struct {
 	FromTable qx.BaseTable
 	// USING
 	UsingTable qx.Table
-	JoinGroups qx.JoinGroups
+	JoinGroups qx.JoinTables
 	// WHERE
 	WherePredicates qx.VariadicPredicate
 	// RETURNING
@@ -133,7 +133,7 @@ func (q DeleteQuery) Using(tbl qx.Table) DeleteQuery {
 
 func (q DeleteQuery) Join(tbl qx.Table, predicate qx.Predicate, predicates ...qx.Predicate) DeleteQuery {
 	predicates = append([]qx.Predicate{predicate}, predicates...)
-	q.JoinGroups = append(q.JoinGroups, qx.JoinGroup{
+	q.JoinGroups = append(q.JoinGroups, qx.JoinTable{
 		JoinType:     qx.JoinTypeDefault,
 		Table:        tbl,
 		OnPredicates: qx.VariadicPredicate{Predicates: predicates},
@@ -143,7 +143,7 @@ func (q DeleteQuery) Join(tbl qx.Table, predicate qx.Predicate, predicates ...qx
 
 func (q DeleteQuery) LeftJoin(tbl qx.Table, predicate qx.Predicate, predicates ...qx.Predicate) DeleteQuery {
 	predicates = append([]qx.Predicate{predicate}, predicates...)
-	q.JoinGroups = append(q.JoinGroups, qx.JoinGroup{
+	q.JoinGroups = append(q.JoinGroups, qx.JoinTable{
 		JoinType:     qx.JoinTypeLeft,
 		Table:        tbl,
 		OnPredicates: qx.VariadicPredicate{Predicates: predicates},
@@ -153,7 +153,7 @@ func (q DeleteQuery) LeftJoin(tbl qx.Table, predicate qx.Predicate, predicates .
 
 func (q DeleteQuery) RightJoin(tbl qx.Table, predicate qx.Predicate, predicates ...qx.Predicate) DeleteQuery {
 	predicates = append([]qx.Predicate{predicate}, predicates...)
-	q.JoinGroups = append(q.JoinGroups, qx.JoinGroup{
+	q.JoinGroups = append(q.JoinGroups, qx.JoinTable{
 		JoinType:     qx.JoinTypeRight,
 		Table:        tbl,
 		OnPredicates: qx.VariadicPredicate{Predicates: predicates},
@@ -163,7 +163,7 @@ func (q DeleteQuery) RightJoin(tbl qx.Table, predicate qx.Predicate, predicates 
 
 func (q DeleteQuery) FullJoin(tbl qx.Table, predicate qx.Predicate, predicates ...qx.Predicate) DeleteQuery {
 	predicates = append([]qx.Predicate{predicate}, predicates...)
-	q.JoinGroups = append(q.JoinGroups, qx.JoinGroup{
+	q.JoinGroups = append(q.JoinGroups, qx.JoinTable{
 		JoinType:     qx.JoinTypeFull,
 		Table:        tbl,
 		OnPredicates: qx.VariadicPredicate{Predicates: predicates},
@@ -172,7 +172,7 @@ func (q DeleteQuery) FullJoin(tbl qx.Table, predicate qx.Predicate, predicates .
 }
 
 func (q DeleteQuery) CrossJoin(tbl qx.Table) DeleteQuery {
-	q.JoinGroups = append(q.JoinGroups, qx.JoinGroup{
+	q.JoinGroups = append(q.JoinGroups, qx.JoinTable{
 		JoinType: qx.JoinTypeCross,
 		Table:    tbl,
 	})

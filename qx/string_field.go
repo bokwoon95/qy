@@ -307,6 +307,14 @@ func (f StringField) NotILikeString(s string) Predicate {
 	}
 }
 
+// In returns an 'A IN (B)' Predicate, where B can be anything.
+func (f StringField) In(v interface{}) Predicate {
+	return CustomPredicate{
+		Format: "? IN (?)",
+		Values: []interface{}{f, v},
+	}
+}
+
 // String implements the fmt.Stringer interface. It returns the string
 // representation of a StringField.
 func (f StringField) String() string {

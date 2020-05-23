@@ -19,7 +19,7 @@ type UpdateQuery struct {
 	SetFields qx.FieldValueSets
 	// FROM
 	FromTable  qx.Table
-	JoinGroups qx.JoinGroups
+	JoinGroups qx.JoinTables
 	// WHERE
 	WherePredicates qx.VariadicPredicate
 	// RETURNING
@@ -142,7 +142,7 @@ func (q UpdateQuery) From(tbl qx.Table) UpdateQuery {
 
 func (q UpdateQuery) Join(tbl qx.Table, pred qx.Predicate, preds ...qx.Predicate) UpdateQuery {
 	preds = append([]qx.Predicate{pred}, preds...)
-	q.JoinGroups = append(q.JoinGroups, qx.JoinGroup{
+	q.JoinGroups = append(q.JoinGroups, qx.JoinTable{
 		JoinType:     qx.JoinTypeDefault,
 		Table:        tbl,
 		OnPredicates: qx.VariadicPredicate{Predicates: preds},
@@ -152,7 +152,7 @@ func (q UpdateQuery) Join(tbl qx.Table, pred qx.Predicate, preds ...qx.Predicate
 
 func (q UpdateQuery) LeftJoin(tbl qx.Table, pred qx.Predicate, preds ...qx.Predicate) UpdateQuery {
 	preds = append([]qx.Predicate{pred}, preds...)
-	q.JoinGroups = append(q.JoinGroups, qx.JoinGroup{
+	q.JoinGroups = append(q.JoinGroups, qx.JoinTable{
 		JoinType:     qx.JoinTypeLeft,
 		Table:        tbl,
 		OnPredicates: qx.VariadicPredicate{Predicates: preds},
@@ -162,7 +162,7 @@ func (q UpdateQuery) LeftJoin(tbl qx.Table, pred qx.Predicate, preds ...qx.Predi
 
 func (q UpdateQuery) RightJoin(tbl qx.Table, pred qx.Predicate, preds ...qx.Predicate) UpdateQuery {
 	preds = append([]qx.Predicate{pred}, preds...)
-	q.JoinGroups = append(q.JoinGroups, qx.JoinGroup{
+	q.JoinGroups = append(q.JoinGroups, qx.JoinTable{
 		JoinType:     qx.JoinTypeRight,
 		Table:        tbl,
 		OnPredicates: qx.VariadicPredicate{Predicates: preds},
@@ -172,7 +172,7 @@ func (q UpdateQuery) RightJoin(tbl qx.Table, pred qx.Predicate, preds ...qx.Pred
 
 func (q UpdateQuery) FullJoin(tbl qx.Table, pred qx.Predicate, preds ...qx.Predicate) UpdateQuery {
 	preds = append([]qx.Predicate{pred}, preds...)
-	q.JoinGroups = append(q.JoinGroups, qx.JoinGroup{
+	q.JoinGroups = append(q.JoinGroups, qx.JoinTable{
 		JoinType:     qx.JoinTypeFull,
 		Table:        tbl,
 		OnPredicates: qx.VariadicPredicate{Predicates: preds},
@@ -181,7 +181,7 @@ func (q UpdateQuery) FullJoin(tbl qx.Table, pred qx.Predicate, preds ...qx.Predi
 }
 
 func (q UpdateQuery) CrossJoin(tbl qx.Table) UpdateQuery {
-	q.JoinGroups = append(q.JoinGroups, qx.JoinGroup{
+	q.JoinGroups = append(q.JoinGroups, qx.JoinTable{
 		JoinType: qx.JoinTypeCross,
 		Table:    tbl,
 	})

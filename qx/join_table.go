@@ -4,17 +4,17 @@ import (
 	"strings"
 )
 
-// JoinGroup represents an SQL join.
-type JoinGroup struct {
+// JoinTable represents an SQL join.
+type JoinTable struct {
 	JoinType     JoinType
 	Table        Table
 	OnPredicates VariadicPredicate
 }
 
-// Join constructs a new JoinGroup. Meant to be used if you want to do a custom
+// Join constructs a new JoinTable. Meant to be used if you want to do a custom
 // join, like NATURAL JOIN.
-func Join(joinType string, table Table, predicates ...Predicate) JoinGroup {
-	return JoinGroup{
+func Join(joinType string, table Table, predicates ...Predicate) JoinTable {
+	return JoinTable{
 		JoinType: JoinType(joinType),
 		Table:    table,
 		OnPredicates: VariadicPredicate{
@@ -24,13 +24,13 @@ func Join(joinType string, table Table, predicates ...Predicate) JoinGroup {
 	}
 }
 
-// JoinGroups is a list of JoinGroups.
-type JoinGroups []JoinGroup
+// JoinTables is a list of JoinTables.
+type JoinTables []JoinTable
 
 // WriteSQL will write the JOIN clause into the buffer and args. If there are
-// no JoinGroups it simply writes nothing into the buffer. It returns a flag
+// no JoinTables it simply writes nothing into the buffer. It returns a flag
 // indicating whether anything was written into the buffer.
-func (joins JoinGroups) WriteSQL(buf *strings.Builder, args *[]interface{}) (written bool) {
+func (joins JoinTables) WriteSQL(buf *strings.Builder, args *[]interface{}) (written bool) {
 	for i := range joins {
 		if joins[i].Table == nil {
 			continue

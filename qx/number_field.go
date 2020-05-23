@@ -376,6 +376,14 @@ func (f NumberField) LeInt(num int) Predicate {
 	}
 }
 
+// In returns an 'A IN (B)' Predicate, where B can be anything.
+func (f NumberField) In(v interface{}) Predicate {
+	return CustomPredicate{
+		Format: "? IN (?)",
+		Values: []interface{}{f, v},
+	}
+}
+
 // String implements the fmt.Stringer interface. It returns the string
 // representation of a NumberField.
 func (f NumberField) String() string {

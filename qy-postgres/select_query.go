@@ -19,7 +19,7 @@ type SelectQuery struct {
 	SelectFields qx.Fields
 	// FROM
 	FromTable  qx.Table
-	JoinGroups qx.JoinGroups
+	JoinGroups qx.JoinTables
 	// WHERE
 	WherePredicates qx.VariadicPredicate
 	// GROUP BY
@@ -181,7 +181,7 @@ func (q SelectQuery) From(table qx.Table) SelectQuery {
 
 func (q SelectQuery) Join(table qx.Table, predicate qx.Predicate, predicates ...qx.Predicate) SelectQuery {
 	predicates = append([]qx.Predicate{predicate}, predicates...)
-	q.JoinGroups = append(q.JoinGroups, qx.JoinGroup{
+	q.JoinGroups = append(q.JoinGroups, qx.JoinTable{
 		JoinType:     qx.JoinTypeDefault,
 		Table:        table,
 		OnPredicates: qx.VariadicPredicate{Predicates: predicates},
@@ -191,7 +191,7 @@ func (q SelectQuery) Join(table qx.Table, predicate qx.Predicate, predicates ...
 
 func (q SelectQuery) LeftJoin(table qx.Table, predicate qx.Predicate, predicates ...qx.Predicate) SelectQuery {
 	predicates = append([]qx.Predicate{predicate}, predicates...)
-	q.JoinGroups = append(q.JoinGroups, qx.JoinGroup{
+	q.JoinGroups = append(q.JoinGroups, qx.JoinTable{
 		JoinType:     qx.JoinTypeLeft,
 		Table:        table,
 		OnPredicates: qx.VariadicPredicate{Predicates: predicates},
@@ -201,7 +201,7 @@ func (q SelectQuery) LeftJoin(table qx.Table, predicate qx.Predicate, predicates
 
 func (q SelectQuery) RightJoin(table qx.Table, predicate qx.Predicate, predicates ...qx.Predicate) SelectQuery {
 	predicates = append([]qx.Predicate{predicate}, predicates...)
-	q.JoinGroups = append(q.JoinGroups, qx.JoinGroup{
+	q.JoinGroups = append(q.JoinGroups, qx.JoinTable{
 		JoinType:     qx.JoinTypeRight,
 		Table:        table,
 		OnPredicates: qx.VariadicPredicate{Predicates: predicates},
@@ -211,7 +211,7 @@ func (q SelectQuery) RightJoin(table qx.Table, predicate qx.Predicate, predicate
 
 func (q SelectQuery) FullJoin(table qx.Table, predicate qx.Predicate, predicates ...qx.Predicate) SelectQuery {
 	predicates = append([]qx.Predicate{predicate}, predicates...)
-	q.JoinGroups = append(q.JoinGroups, qx.JoinGroup{
+	q.JoinGroups = append(q.JoinGroups, qx.JoinTable{
 		JoinType:     qx.JoinTypeFull,
 		Table:        table,
 		OnPredicates: qx.VariadicPredicate{Predicates: predicates},
@@ -220,7 +220,7 @@ func (q SelectQuery) FullJoin(table qx.Table, predicate qx.Predicate, predicates
 }
 
 func (q SelectQuery) CrossJoin(table qx.Table) SelectQuery {
-	q.JoinGroups = append(q.JoinGroups, qx.JoinGroup{
+	q.JoinGroups = append(q.JoinGroups, qx.JoinTable{
 		JoinType: qx.JoinTypeCross,
 		Table:    table,
 	})
