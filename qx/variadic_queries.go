@@ -26,7 +26,7 @@ func (q VariadicQuery) ToSQL() (string, []interface{}) {
 		if q.Queries[i] == nil {
 			continue
 		}
-		subquery, subargs := q.Queries[i].GetNested().ToSQL()
+		subquery, subargs := q.Queries[i].NestThis().ToSQL()
 		if subquery == "" {
 			continue
 		}
@@ -54,7 +54,7 @@ func (q VariadicQuery) GetName() string {
 	return ""
 }
 
-func (q VariadicQuery) GetNested() Query {
+func (q VariadicQuery) NestThis() Query {
 	q.Nested = true
 	return q
 }

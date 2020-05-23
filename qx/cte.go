@@ -55,7 +55,7 @@ func (ctes CTEs) WriteSQL(buf *strings.Builder, args *[]interface{}) (written bo
 		if ctes[i].Query == nil {
 			continue
 		}
-		cteQuery, cteArgs := ctes[i].Query.GetNested().ToSQL()
+		cteQuery, cteArgs := ctes[i].Query.NestThis().ToSQL()
 		if cteQuery == "" {
 			continue
 		}

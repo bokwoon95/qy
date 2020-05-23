@@ -349,7 +349,7 @@ func (q SelectQuery) GetName() string {
 	return ""
 }
 
-func (q SelectQuery) GetNested() qx.Query {
+func (q SelectQuery) NestThis() qx.Query {
 	q.Nested = true
 	return q
 }

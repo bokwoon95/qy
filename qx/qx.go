@@ -17,7 +17,7 @@ type Table interface {
 // queries like SELECT/INSERT/UPDATE/DELETE.
 type Query interface {
 	Table
-	GetNested() Query
+	NestThis() Query
 }
 
 // BaseTable is an interface that specialises the Table interface. It covers

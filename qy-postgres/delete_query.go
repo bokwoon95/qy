@@ -98,7 +98,7 @@ func (q DeleteQuery) GetName() string {
 	return ""
 }
 
-func (q DeleteQuery) GetNested() qx.Query {
+func (q DeleteQuery) NestThis() qx.Query {
 	q.Nested = true
 	return q
 }
