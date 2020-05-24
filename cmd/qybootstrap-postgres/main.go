@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	directory := filepath.Join("cmd", "qygen")
+	directory := filepath.Join("cmd", "qygen-postgres")
 	directoryFlag := flag.String("directory", directory, "(optional) Directory to place main.go. Default is cmd/qygen in the current directory")
 	flag.Parse()
 	log.SetFlags(log.Lshortfile)
