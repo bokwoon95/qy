@@ -33,8 +33,8 @@ type InsertQuery struct {
 	Mapper          func(Row)
 	Accumulator     func()
 	// Logging
-	Log  qx.Logger
-	Skip int
+	Log     qx.Logger
+	LogSkip int
 }
 
 func (q InsertQuery) ToSQL() (string, []interface{}) {
@@ -124,9 +124,9 @@ func (q InsertQuery) ToSQL() (string, []interface{}) {
 		case nil:
 			// do nothing
 		case *log.Logger:
-			q.Log.Output(q.Skip+2, qx.PostgresInterpolateSQL(query, args...))
+			q.Log.Output(q.LogSkip+2, qx.PostgresInterpolateSQL(query, args...))
 		default:
-			q.Log.Output(q.Skip+1, qx.PostgresInterpolateSQL(query, args...))
+			q.Log.Output(q.LogSkip+1, qx.PostgresInterpolateSQL(query, args...))
 		}
 	}
 	return query, args
@@ -254,7 +254,7 @@ func (q InsertQuery) Exec(db qx.Queryer) (err error) {
 	}
 	q.ReturningFields = r.QxRow.Fields // then, transfer the selected collected by *Row to the InsertQuery
 	r.QxRow.Active = true              // mark Row as active i.e.
-	q.Skip += 1
+	q.LogSkip += 1
 	query, args := q.ToSQL()
 	rows, err := db.Query(query, args...)
 	if err != nil {

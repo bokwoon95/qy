@@ -101,7 +101,7 @@ type Field struct {
 func getTables(db *sql.DB, databaseURL string, schemas []string) ([]Table, error) {
 	var tables []Table
 	query := replacePlaceholders(
-		"SELECT t.table_type, c.table_schema, c.table_name, c.column_name, c.data_type" +
+		"SELECT t.table_type, c.table_schema, c.table_name, c.column_name, c.data_type" + // TODO: add udt_type column
 			" FROM information_schema.tables AS t" +
 			" JOIN information_schema.columns AS c USING (table_schema, table_name)" +
 			" WHERE table_schema IN (?" + strings.Repeat(", ?", len(schemas)-1) + ")" +
@@ -265,6 +265,11 @@ import (
 
 {{- define "table_struct_definition"}}
 {{- with $table := .}}
+{{- if eq $table.RawType "BASE TABLE"}}
+// {{uppercase $table.StructName}} references the {{$table.Schema}}.{{$table.Name}} table
+{{- else if eq $table.RawType "VIEW"}}
+// {{uppercase $table.StructName}} references the {{$table.Schema}}.{{$table.Name}} view
+{{- end}}
 type {{uppercase $table.StructName}} struct {
 	*qx.TableInfo
 	{{- range $_, $field := $table.Fields}}
@@ -276,6 +281,11 @@ type {{uppercase $table.StructName}} struct {
 
 {{- define "table_constructor"}}
 {{- with $table := .}}
+{{- if eq $table.RawType "BASE TABLE"}}
+// {{$table.Constructor}} creates an instance of the {{$table.Schema}}.{{$table.Name}} table
+{{- else if eq $table.RawType "VIEW"}}
+// {{$table.Constructor}} creates an instance of the {{$table.Schema}}.{{$table.Name}} view
+{{- end}}
 func {{$table.Constructor}}() {{$table.StructName}} {
 	tbl := {{$table.StructName}}{TableInfo: qx.NewTableInfo("{{$table.Schema}}", "{{$table.Name}}")}
 	{{- range $_, $field := $table.Fields}}
