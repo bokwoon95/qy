@@ -1,8 +1,11 @@
 package qx
 
+import "strings"
+
 type FunctionInfo struct {
+	Schema    string
+	Name      string
 	Alias     string
-	Query     string
 	Arguments []interface{}
 
 	// Each dialect-specific qy package (postgres, mysql, sqlite3) is expected
@@ -13,37 +16,40 @@ type FunctionInfo struct {
 }
 
 // ToSQL marshals a FunctionInfo into an SQL query.
-func (tbl FunctionInfo) ToSQL() (string, []interface{}) {
-	return tbl.ToSQLExclude(nil)
+func (f *FunctionInfo) ToSQL() (string, []interface{}) {
+	return f.ToSQLExclude(nil)
 }
 
 // ToSQL marshals a FunctionInfo into an SQL query.
-func (tbl FunctionInfo) ToSQLExclude(excludeTableQualifiers []string) (string, []interface{}) {
+func (f *FunctionInfo) ToSQLExclude(excludeTableQualifiers []string) (string, []interface{}) {
 	var query string
 	var args []interface{}
-	if tbl.CustomSprintf != nil {
-		query, args = tbl.CustomSprintf(tbl.Query, tbl.Arguments, excludeTableQualifiers)
+	schema := f.Schema + "."
+	if f.Schema == "public." {
+		schema = ""
+	}
+	switch len(f.Arguments) {
+	case 0:
+		query = schema + f.Name + "()"
+	default:
+		query = schema + f.Name + "(?" + strings.Repeat(", ?", len(f.Arguments)-1) + ")"
+	}
+	if f.CustomSprintf != nil {
+		query, args = f.CustomSprintf(query, f.Arguments, excludeTableQualifiers)
 	} else {
-		query, args = defaultSprintf(tbl.Query, tbl.Arguments, excludeTableQualifiers)
+		query, args = defaultSprintf(query, f.Arguments, excludeTableQualifiers)
 	}
 	return query, args
 }
 
-// As returns a new FunctionInfo with the new alias i.e. 'field AS Alias'.
-func (tbl FunctionInfo) As(alias string) FunctionInfo {
-	tbl.Alias = alias
-	return tbl
-}
-
 // GetAlias implements the Table interface. It returns the alias of the
 // FunctionInfo.
-func (tbl FunctionInfo) GetAlias() string {
-	return tbl.Alias
+func (f *FunctionInfo) GetAlias() string {
+	return f.Alias
 }
 
 // GetName implements the Table interface. It returns the name of the
 // FunctionInfo.
-func (tbl FunctionInfo) GetName() string {
-	name, _ := tbl.ToSQL()
-	return name
+func (f *FunctionInfo) GetName() string {
+	return f.Name
 }

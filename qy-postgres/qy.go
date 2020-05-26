@@ -199,9 +199,9 @@ func CustomSprintf(format string, values []interface{}, excludeTableQualifiers [
 			for i := range value {
 				args[i] = value[i]
 			}
-		case int, int8, int16, uint8, uint16, uint32:
+		case int, int8, int16, uint8, uint16:
 			query, args = "?::INT", []interface{}{value}
-		case int64, uint64:
+		case uint32, int64, uint64:
 			query, args = "?::BIGINT", []interface{}{value}
 		case float32, float64:
 			query, args = "?::FLOAT", []interface{}{value}

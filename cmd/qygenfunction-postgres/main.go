@@ -1,0 +1,589 @@
+package main
+
+import (
+	"database/sql"
+	"flag"
+	"fmt"
+	"html/template"
+	"log"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"regexp"
+	"strconv"
+	"strings"
+	"unicode"
+
+	_ "github.com/lib/pq"
+)
+
+func main() {
+	currdir, err := os.Getwd()
+	if err != nil {
+		printAndExit(err)
+	}
+	var (
+		databaseFlag  = flag.String("database", "", "(required) Database URL")
+		directoryFlag = flag.String("directory", filepath.Join(currdir, "tables"), "(optional) Directory to place the generated file. Can be absolute or relative filepath")
+		dryrunFlag    = flag.Bool("dryrun", false, "(optional) Print the list of tables to be generated without generating the file")
+		fileFlag      = flag.String("file", "tables.go", "(optional) Name of the file to be generated. If file already exists, -overwrite flag must be specified to overwrite the file")
+		overwriteFlag = flag.Bool("overwrite", false, "(optional) Overwrite any files that already exist")
+		packageFlag   = flag.String("package", "tables", "(optional) Package name of the file to be generated")
+		schemasFlag   = flag.String("schema", "", "(required) A comma separated list of schemas that you want to generate tables for. Please don't include any spaces")
+	)
+	flag.Parse()
+	log.SetFlags(log.Lshortfile)
+	if len(os.Args[1:]) == 0 {
+		flag.PrintDefaults()
+		return
+	}
+	config, err := prepConfig(*databaseFlag, *schemasFlag, *directoryFlag, *fileFlag, *packageFlag, *dryrunFlag, *overwriteFlag)
+	if err != nil {
+		printAndExit(err)
+	}
+	db, err := sql.Open("postgres", config.databaseURL)
+	if err != nil {
+		printAndExit(err)
+	}
+	err = db.Ping()
+	if err != nil {
+		printAndExit("Could not ping the database, is the database reachable via " + config.databaseURL + "? " + err.Error())
+	}
+
+	//--------------------------------------------------------------------------------//
+	tables, err := processFunctions(getFunctions(db, config.databaseURL, config.schemas))
+	if err != nil {
+		printAndExit(err)
+	}
+	if config.dryrun || true {
+		// Here is where you can print the list of filtered tables before you
+		// actually write it out to a file.
+		for _, table := range tables {
+			fmt.Println(table)
+		}
+		return
+	}
+	//--------------------------------------------------------------------------------//
+
+	err = writeFunctionsToFile(tables, config.directory, config.file, config.packageName)
+	if err != nil {
+		printAndExit(err)
+	}
+	fmt.Println("Result:      ", strconv.Itoa(len(tables)), "tables written into", filepath.Join(config.directory, config.file))
+}
+
+type Function struct {
+	Schema       string
+	Name         string
+	RawResults   string
+	RawArguments string
+	StructName   string
+	Constructor  string
+	Results      []Field
+	Arguments    []Field
+}
+
+type Field struct {
+	RawField    string
+	Name        string
+	FieldType   string
+	GoType      string
+	Constructor string
+}
+
+func getFunctions(db *sql.DB, databaseURL string, schemas []string) ([]Function, error) {
+	var functions []Function
+	query := replacePlaceholders(
+		"SELECT n.nspname, p.proname" +
+			", pg_catalog.pg_get_function_result(p.oid) AS result" +
+			", pg_catalog.pg_get_function_identity_arguments(p.oid) as arguments" +
+			" FROM pg_catalog.pg_proc AS p" +
+			" LEFT JOIN pg_catalog.pg_namespace AS n ON n.oid = p.pronamespace" +
+			" WHERE n.nspname IN (?" + strings.Repeat(", ?", len(schemas)-1) + ") AND p.prokind = 'f'",
+	)
+	args := make([]interface{}, len(schemas))
+	for i := range schemas {
+		args[i] = schemas[i]
+	}
+	rows, err := db.Query(query, args...)
+	fmt.Println("Query:       ", query, args)
+	if err != nil {
+		return functions, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var functionSchema, functionName, functionResults, functionArguments string
+		err := rows.Scan(&functionSchema, &functionName, &functionResults, &functionArguments)
+		if err != nil {
+			return functions, err
+		}
+		function := Function{
+			Schema:       functionSchema,
+			Name:         functionName,
+			RawResults:   functionResults,
+			RawArguments: functionArguments,
+		}
+		{ // function.Results
+			var rawFields []string
+			switch {
+			case strings.HasPrefix(functionResults, "TABLE(") && strings.HasSuffix(functionResults, ")"):
+				functionResults = functionResults[6 : len(functionResults)-1]
+				rawFields = strings.Split(functionResults, ",")
+				for i := range rawFields {
+					field := Field{RawField: strings.TrimSpace(rawFields[i])}
+					field = extractNameAndType(rawFields[i])
+					function.Results = append(function.Results, field)
+				}
+			default:
+				if strings.HasPrefix(functionResults, "SETOF ") {
+					functionResults = functionResults[6:]
+				}
+				function.Results = []Field{{RawField: functionResults}}
+			}
+		}
+		{ // function.Arguments
+			var rawFields []string
+			rawFields = strings.Split(functionArguments, ",")
+			for i := range rawFields {
+				field := Field{RawField: strings.TrimSpace(rawFields[i])}
+				field = extractNameAndType(rawFields[i])
+				function.Arguments = append(function.Arguments, field)
+			}
+		}
+		functions = append(functions, function)
+	}
+	return functions, nil
+}
+
+const (
+	GoTypeInterface    = "interface{}"
+	GoTypeBool         = "bool"
+	GoTypeInt          = "int"
+	GoTypeFloat64      = "float64"
+	GoTypeString       = "string"
+	GoTypeTime         = "time.Time"
+	GoTypeBoolSlice    = "[]bool"
+	GoTypeIntSlice     = "[]int"
+	GoTypeFloat64Slice = "[]float64"
+	GoTypeStringSlice  = "[]string"
+	GoTypeTimeSlice    = "[]time.Time"
+	GoTypeBytes        = "[]byte"
+
+	FieldTypeBoolean = "qx.BooleanField"
+	FieldTypeJSON    = "qx.JSONField"
+	FieldTypeNumber  = "qx.NumberField"
+	FieldTypeString  = "qx.StringField"
+	FieldTypeTime    = "qx.TimeField"
+	FieldTypeEnum    = "qx.EnumField"
+	FieldTypeArray   = "qx.ArrayField"
+	FieldTypeBinary  = "qx.BinaryField"
+
+	FieldConstructorBoolean = "qx.NewBooleanField"
+	FieldConstructorJSON    = "qx.NewJSONField"
+	FieldConstructorNumber  = "qx.NewNumberField"
+	FieldConstructorString  = "qx.NewStringField"
+	FieldConstructorTime    = "qx.NewTimeField"
+	FieldConstructorEnum    = "qx.NewEnumField"
+	FieldConstructorArray   = "qx.NewArrayField"
+	FieldConstructorBinary  = "qx.NewBinaryField"
+)
+
+func processFunctions(inputFunctions []Function, err error) ([]Function, error) {
+	if err != nil {
+		return inputFunctions, err
+	}
+	var outputFunctions []Function
+	for _, function := range inputFunctions {
+		_ = function
+	}
+	outputFunctions = inputFunctions
+	return outputFunctions, nil
+}
+
+type FileData struct {
+	PackageName string
+	Imports     []string
+	Functions   []Function
+}
+
+var Imports = []string{
+	"github.com/bokwoon95/qy/qx",
+	"github.com/bokwoon95/qy/qy-postgres",
+}
+
+var qygenfunctionTemplate = `// Code generated by qygenfunction-postgres; DO NOT EDIT.
+package {{$.PackageName}}
+
+import (
+	{{- range $_, $import := $.Imports}}
+	"{{$import}}"
+	{{- end}}
+)
+{{- range $_, $table := $.Tables}}
+{{template "table_struct_definition" $table}}
+{{template "table_constructor" $table}}
+{{template "table_as" $table}}
+{{- end}}
+
+{{- define "table_struct_definition"}}
+{{- with $table := .}}
+{{- if eq $table.RawType "BASE TABLE"}}
+// {{uppercase $table.StructName}} references the {{$table.Schema}}.{{$table.Name}} table
+{{- else if eq $table.RawType "VIEW"}}
+// {{uppercase $table.StructName}} references the {{$table.Schema}}.{{$table.Name}} view
+{{- end}}
+type {{uppercase $table.StructName}} struct {
+	*qx.TableInfo
+	{{- range $_, $field := $table.Fields}}
+	{{uppercase $field.Name}} {{$field.Type}}
+	{{- end}}
+}
+{{- end}}
+{{- end}}
+
+{{- define "table_constructor"}}
+{{- with $table := .}}
+{{- if eq $table.RawType "BASE TABLE"}}
+// {{$table.Constructor}} creates an instance of the {{$table.Schema}}.{{$table.Name}} table
+{{- else if eq $table.RawType "VIEW"}}
+// {{$table.Constructor}} creates an instance of the {{$table.Schema}}.{{$table.Name}} view
+{{- end}}
+func {{$table.Constructor}}() {{$table.StructName}} {
+	tbl := {{$table.StructName}}{TableInfo: qx.NewTableInfo("{{$table.Schema}}", "{{$table.Name}}")}
+	{{- range $_, $field := $table.Fields}}
+	tbl.{{uppercase $field.Name}} = {{$field.Constructor}}("{{$field.Name}}", tbl.TableInfo)
+	{{- end}}
+	return tbl
+}
+{{- end}}
+{{- end}}
+
+{{- define "table_as"}}
+{{- with $table := .}}
+func (tbl {{$table.StructName}}) As(alias string) {{$table.StructName}} {
+	tbl2 := {{$table.Constructor}}()
+	tbl2.TableInfo.Alias = alias
+	return tbl2
+}
+{{- end}}
+{{- end}}`
+
+// writeFunctionsToFile will write the functions into a file specified by
+// filepath.Join(directory, file).
+func writeFunctionsToFile(functions []Function, directory, file, packageName string) error {
+	err := os.MkdirAll(directory, 0755)
+	if err != nil {
+		return fmt.Errorf("Could not create directory %s: %w", directory, err)
+	}
+	filename := filepath.Join(directory, file)
+	f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	t, err := template.New("").Funcs(template.FuncMap{
+		"uppercase": func(s string) string {
+			return strings.TrimPrefix(strings.ToUpper(s), "_")
+		},
+	}).Parse(qygenfunctionTemplate)
+	if err != nil {
+		return err
+	}
+	data := FileData{
+		PackageName: packageName,
+		Imports:     Imports,
+		Functions:   functions,
+	}
+	err = t.Execute(f, data)
+	if err != nil {
+		return err
+	}
+	if _, err := exec.LookPath("goimports"); err == nil {
+		_ = exec.Command("goimports", "-w", filename).Run()
+	} else if _, err := exec.LookPath("gofmt"); err == nil {
+		_ = exec.Command("gofmt", "-w", filename).Run()
+	}
+	return nil
+}
+
+type Config struct {
+	databaseURL string
+	directory   string
+	dryrun      bool
+	file        string
+	overwrite   bool
+	packageName string
+	schemas     []string
+}
+
+// prepConfig will process the incoming data and initialize the config object
+// accordingly
+func prepConfig(database, schemas, directory, file, packageName string, dryrun, overwrite bool) (cfg Config, err error) {
+	// databaseURL
+	cfg.databaseURL = database
+	fmt.Println("Database URL:", cfg.databaseURL)
+	if cfg.databaseURL == "" {
+		return cfg, fmt.Errorf("Database URL is either empty or not passed in. You need to specify a database URL with the -database option.")
+	}
+
+	// schemas
+	if schemas == "" {
+		return cfg, fmt.Errorf("A database schema needs to be specified")
+	}
+	cfg.schemas = strings.FieldsFunc(schemas, func(r rune) bool { return r == ',' || unicode.IsSpace(r) })
+	fmt.Println("Schemas:     ", cfg.schemas)
+
+	// directory
+	cfg.directory = directory
+	fmt.Println("Directory:   ", cfg.directory)
+	if cfg.directory == "" {
+		return cfg, fmt.Errorf("-directory was not specified. You need to provide a directory to place the generated file in")
+	}
+	cfg.directory, err = filepath.Abs(cfg.directory)
+	if err != nil {
+		return cfg, err
+	}
+
+	// file
+	cfg.file = file
+	fmt.Println("File:        ", cfg.file)
+	if cfg.file == "" {
+		return cfg, fmt.Errorf("-file was not specified. You need to provide a file name (e.g. tables.go) for the generated file")
+	}
+	if !strings.HasSuffix(cfg.file, ".go") {
+		cfg.file = cfg.file + ".go"
+	}
+	asboluteFilePath := filepath.Join(directory, file)
+	if _, err := os.Stat(asboluteFilePath); err == nil && !overwrite {
+		return cfg, fmt.Errorf("Specified file %s already exists. If you wish to overwrite it, provide the -overwrite flag", asboluteFilePath)
+	}
+
+	// packageName
+	cfg.packageName = packageName
+	fmt.Println("Package Name:", cfg.packageName)
+	if cfg.packageName == "" {
+		return cfg, fmt.Errorf("-package name was not provided. You need to provide the package name for the generated file")
+	}
+
+	// dryrun
+	cfg.dryrun = dryrun
+	return cfg, nil
+}
+
+/* Utility functions */
+
+func printAndExit(v ...interface{}) {
+	fmt.Println("======================================== ERROR! ========================================")
+	log.Output(2, fmt.Sprintln(v...))
+	os.Exit(1)
+}
+
+// replacePlaceholders will replace all ? placeholders in a query string to the
+// postgres-valid incrementing placeholders $1, $2, $3 etc.
+func replacePlaceholders(query string) string {
+	buf := &strings.Builder{}
+	i := 0
+	for pos := strings.Index(query, "?"); pos >= 0; pos = strings.Index(query, "?") {
+		i++
+		buf.WriteString(query[:pos] + "$" + strconv.Itoa(i))
+		query = query[pos+1:]
+	}
+	buf.WriteString(query)
+	return buf.String()
+}
+
+// String implements fmt.Stringer for type Table, allowing you to call
+// fmt.Println(table) and have it formatted accordingly.
+func (f Function) String() string {
+	var output string
+	if f.Constructor != "" && f.StructName != "" {
+		output += fmt.Sprintf("%s.%s => func %s() %s\n", f.Schema, f.Name, f.Constructor, f.StructName)
+	} else {
+		output += fmt.Sprintf("%s.%s\n", f.Schema, f.Name)
+	}
+	output += fmt.Sprintf("    Arguments\n")
+	for _, field := range f.Arguments {
+		output += fmt.Sprintf("        %#v\n", field)
+		// if field.Constructor != "" && field.GoType != "" {
+		// 	output += fmt.Sprintf("        %s: %s\n", field.Name, field.GoType)
+		// } else {
+		// 	output += fmt.Sprintf("        %s\n", field.RawField)
+		// }
+	}
+	output += fmt.Sprintf("    Results\n")
+	for _, field := range f.Results {
+		output += fmt.Sprintf("        %#v\n", field)
+		// if field.Constructor != "" && field.FieldType != "" {
+		// 	output += fmt.Sprintf("        %s: %s\n", field.Name, field.FieldType)
+		// } else {
+		// 	output += fmt.Sprintf("        %s\n", field.RawField)
+		// }
+	}
+	return output
+}
+
+/* Type classification functions */
+
+func extractNameAndType(rawField string) Field {
+	var field Field
+	field.RawField = rawField
+	if matches := regexp.
+		MustCompile(`boolean` +
+			`(\[\])?` +
+			`$`).
+		FindStringSubmatch(rawField); len(matches) == 2 {
+		// fmt.Println(rawField, matches)
+		// Boolean
+		field.Name = strings.TrimSpace(rawField[:len(matches[0])-2])
+		if matches[1] == "[]" {
+			field.FieldType = FieldTypeArray
+			field.GoType = GoTypeBoolSlice
+			field.Constructor = FieldConstructorArray
+		} else {
+			field.FieldType = FieldTypeBoolean
+			field.GoType = GoTypeBool
+			field.Constructor = FieldConstructorBoolean
+		}
+
+	} else if matches := regexp.
+		MustCompile(`json` + `(?:b)?` +
+			`(\[\])?` +
+			`$`).
+		FindStringSubmatch(rawField); len(matches) == 2 {
+		// fmt.Println(rawField, matches)
+		// JSON
+		field.Name = strings.TrimSpace(rawField[:len(matches[0])-2])
+		if matches[1] == "[]" {
+			field.FieldType = FieldTypeArray
+			field.GoType = GoTypeInterface
+			field.Constructor = FieldConstructorArray
+		} else {
+			field.FieldType = FieldTypeJSON
+			field.GoType = GoTypeInterface
+			field.Constructor = FieldConstructorJSON
+		}
+
+	} else if matches := regexp.
+		MustCompile(`(?:` + `smallint` +
+			`|` + `integer` +
+			`|` + `bigint` +
+			`|` + `smallserial` +
+			`|` + `serial` +
+			`|` + `bigserial` + `)` +
+			`(\[\])?` +
+			`$`).
+		FindStringSubmatch(rawField); len(matches) == 2 {
+		// fmt.Println(rawField, matches)
+		// Integer
+		field.Name = strings.TrimSpace(rawField[:len(rawField)-len(matches[0])])
+		if matches[1] == "[]" {
+			field.FieldType = FieldTypeArray
+			field.GoType = GoTypeIntSlice
+			field.Constructor = FieldConstructorArray
+		} else {
+			field.FieldType = FieldTypeNumber
+			field.GoType = GoTypeInt
+			field.Constructor = FieldConstructorNumber
+		}
+
+	} else if matches := regexp.
+		MustCompile(`(?:` + `decimal` +
+			`|` + `numeric` +
+			`|` + `real` +
+			`|` + `double precision` + `)` +
+			`(\[\])?` +
+			`$`).
+		FindStringSubmatch(rawField); len(matches) == 2 {
+		// fmt.Println(rawField, matches)
+		// Float
+		field.Name = strings.TrimSpace(rawField[:len(rawField)-len(matches[0])])
+		if matches[1] == "[]" {
+			field.FieldType = FieldTypeArray
+			field.GoType = GoTypeFloat64Slice
+			field.Constructor = FieldConstructorArray
+		} else {
+			field.FieldType = FieldTypeNumber
+			field.GoType = GoTypeFloat64
+			field.Constructor = FieldConstructorNumber
+		}
+
+	} else if matches := regexp.
+		MustCompile(`(?:` + `text` +
+			`|` + `char` + `(?:\(\d+\))?` +
+			`|` + `character` + `(?:\(\d+\))?` +
+			`|` + `varchar` + `(?:\(\d+\))?` +
+			`|` + `character varying` + `(?:\(\d+\))?` + `)` +
+			`(\[\])?` +
+			`$`).
+		FindStringSubmatch(rawField); len(matches) == 2 {
+		// fmt.Println(rawField, matches)
+		// String
+		field.Name = strings.TrimSpace(rawField[:len(rawField)-len(matches[0])])
+		if matches[1] == "[]" {
+			field.FieldType = FieldTypeArray
+			field.GoType = GoTypeStringSlice
+			field.Constructor = FieldConstructorArray
+		} else {
+			field.FieldType = FieldTypeString
+			field.GoType = GoTypeString
+			field.Constructor = FieldConstructorString
+		}
+
+	} else if matches := regexp.
+		MustCompile(`(?:` + `date` +
+			`|` + `(?:time|timestamp)` +
+			`(?: \(\d+\))?` +
+			`(?: without time zone| with time zone)?` + `)` +
+			`(\[\])?` +
+			`$`).
+		FindStringSubmatch(rawField); len(matches) == 2 {
+		// fmt.Println(rawField, matches)
+		// Time
+		field.Name = strings.TrimSpace(rawField[:len(rawField)-len(matches[0])])
+		if matches[1] == "[]" {
+			field.FieldType = FieldTypeArray
+			field.GoType = GoTypeTimeSlice
+			field.Constructor = FieldConstructorArray
+		} else {
+			field.FieldType = FieldTypeTime
+			field.GoType = GoTypeTime
+			field.Constructor = FieldConstructorTime
+		}
+	}
+	return field
+}
+
+func isString(rawtype string) bool {
+	// https://www.postgresql.org/docs/current/datatype-character.html
+	switch {
+	case rawtype == "text", strings.HasPrefix(rawtype, "char"), strings.HasPrefix(rawtype, "varchar"):
+		return true
+	case rawtype == "name":
+		// https://dba.stackexchange.com/questions/217533/what-is-the-data-type-name-in-postgresql
+		return true
+	default:
+		return false
+	}
+}
+
+func isTime(rawtype string) bool {
+	// https://www.postgresql.org/docs/current/datatype-datetime.html
+	switch {
+	case strings.HasPrefix(rawtype, "time"), rawtype == "date":
+		return true
+	default:
+		return false
+	}
+}
+
+func isEnum(rawtype string) bool {
+	return rawtype == "USER-DEFINED"
+}
+
+func isArray(rawtype string) bool {
+	return rawtype == "ARRAY"
+}
+
+func isBytes(rawtype string) bool {
+	return rawtype == "bytea"
+}
