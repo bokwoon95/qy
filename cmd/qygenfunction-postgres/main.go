@@ -391,7 +391,6 @@ import (
 {{- range $_, $function := $.Functions}}
 {{template "function_struct_definition" $function}}
 {{template "function_constructor" $function}}
-{{template "function_as" $function}}
 {{- end}}
 
 {{- define "function_struct_definition"}}
@@ -427,17 +426,17 @@ func {{$function.Constructor}}_({{range $i, $arg := $function.Arguments}}{{if no
 	return f
 }
 {{- end}}
-{{- end}}
-
-{{- define "function_as"}}
-{{- with $function := .}}
-func (f {{$function.StructName}}) As(alias string) {{$function.StructName}} {
-	f2 := {{$function.Constructor}}()
-	f2.FunctionInfo.Alias = alias
-	return f2
-}
-{{- end}}
 {{- end}}`
+//
+// {{- define "function_as"}}
+// {{- with $function := .}}
+// func (f {{$function.StructName}}) As(alias string) {{$function.StructName}} {
+// 	f2 := {{$function.Constructor}}()
+// 	f2.FunctionInfo.Alias = alias
+// 	return f2
+// }
+// {{- end}}
+// {{- end}}`
 
 // writeFunctionsToFile will write the functions into a file specified by
 // filepath.Join(directory, file).
