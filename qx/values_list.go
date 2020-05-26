@@ -21,7 +21,7 @@ func (vl ValuesList) WriteSQL(buf *strings.Builder, args *[]interface{}, prepend
 		valueQueries, valueArgs := []string{}, []interface{}{}
 		for j := range vl[i] {
 			if field, ok := vl[i][j].(Field); ok && field != nil {
-				fieldQuery, fieldArgs := field.ToSQL(nil)
+				fieldQuery, fieldArgs := field.ToSQLExclude(nil)
 				valueQueries = append(valueQueries, fieldQuery)
 				valueArgs = append(valueArgs, fieldArgs...)
 			} else {

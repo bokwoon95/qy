@@ -33,7 +33,7 @@ type ArrayField struct {
 	nullsfirst *bool
 }
 
-func (f ArrayField) ToSQL(excludeTableQualifiers []string) (string, []interface{}) {
+func (f ArrayField) ToSQLExclude(excludeTableQualifiers []string) (string, []interface{}) {
 	// 1) Literal array value
 	if f.value != nil {
 		var query string
@@ -300,7 +300,7 @@ func (f ArrayField) Concat(field ArrayField) Predicate {
 // String implements the fmt.Stringer interface. It returns the string
 // representation of an ArrayField.
 func (f ArrayField) String() string {
-	query, args := f.ToSQL(nil)
+	query, args := f.ToSQLExclude(nil)
 	return MySQLInterpolateSQL(query, args...)
 }
 

@@ -32,7 +32,7 @@ type Predicate interface {
 	// Predicates should propagate the excludeTableQualifiers argument down to
 	// its Fields. For info on what excludeTableQualifiers is, look at the
 	// Field interface description.
-	ToSQL(excludeTableQualifiers []string) (string, []interface{})
+	ToSQLExclude(excludeTableQualifiers []string) (string, []interface{})
 
 	AssertPredicate()
 }
@@ -47,7 +47,7 @@ type Field interface {
 	//
 	// This is to play nice with certain clauses in the INSERT and UPDATE
 	// queries that expressly forbid table qualified columns.
-	ToSQL(excludeTableQualifiers []string) (string, []interface{})
+	ToSQLExclude(excludeTableQualifiers []string) (string, []interface{})
 
 	GetAlias() string
 	GetName() string

@@ -19,7 +19,7 @@ type CustomPredicate struct {
 }
 
 // ToSQL marshals a CustomPredicate into an SQL query.
-func (p CustomPredicate) ToSQL(excludeTableQualifiers []string) (string, []interface{}) {
+func (p CustomPredicate) ToSQLExclude(excludeTableQualifiers []string) (string, []interface{}) {
 	var query string
 	var args []interface{}
 	if p.CustomSprintf != nil {
@@ -55,7 +55,7 @@ type VariadicPredicate struct {
 
 // ToSQL marshals a VariadicPredicate into an SQL query and args as described
 // in the VariadicPredicate struct description.
-func (p VariadicPredicate) ToSQL(excludeTableQualifiers []string) (string, []interface{}) {
+func (p VariadicPredicate) ToSQLExclude(excludeTableQualifiers []string) (string, []interface{}) {
 	var predicateStrs []string
 	var args []interface{}
 	if p.Operator == "" {
@@ -65,7 +65,7 @@ func (p VariadicPredicate) ToSQL(excludeTableQualifiers []string) (string, []int
 		if p.Predicates[i] == nil {
 			continue
 		}
-		subquery, subargs := p.Predicates[i].ToSQL(excludeTableQualifiers)
+		subquery, subargs := p.Predicates[i].ToSQLExclude(excludeTableQualifiers)
 		predicateStrs = append(predicateStrs, subquery)
 		args = append(args, subargs...)
 	}
@@ -116,7 +116,7 @@ func (p VariadicPredicate) WriteSQL(buf *strings.Builder, args *[]interface{}, p
 			p.Predicates[0] = pred
 		}
 	}
-	predicateQuery, predicateArgs := p.ToSQL(excludeTableQualifiers)
+	predicateQuery, predicateArgs := p.ToSQLExclude(excludeTableQualifiers)
 	if predicateQuery != "" {
 		if buf.Len() > 0 {
 			buf.WriteString(" ")
@@ -141,14 +141,14 @@ type UnaryPredicate struct {
 	Field    Field
 }
 
-func (p UnaryPredicate) ToSQL(excludeTableQualifiers []string) (string, []interface{}) {
+func (p UnaryPredicate) ToSQLExclude(excludeTableQualifiers []string) (string, []interface{}) {
 	if p.Operator == "" {
 		p.Operator = PredicateIsNull
 	}
 	if p.Field == nil {
 		p.Field = _NULL
 	}
-	query, args := p.Field.ToSQL(excludeTableQualifiers)
+	query, args := p.Field.ToSQLExclude(excludeTableQualifiers)
 	return query + " " + string(p.Operator), args
 }
 
@@ -179,7 +179,7 @@ type BinaryPredicate struct {
 	RightField Field
 }
 
-func (p BinaryPredicate) ToSQL(excludeTableQualifiers []string) (string, []interface{}) {
+func (p BinaryPredicate) ToSQLExclude(excludeTableQualifiers []string) (string, []interface{}) {
 	if p.Operator == "" {
 		p.Operator = PredicateEq
 	}
@@ -189,8 +189,8 @@ func (p BinaryPredicate) ToSQL(excludeTableQualifiers []string) (string, []inter
 	if p.RightField == nil {
 		p.RightField = _NULL
 	}
-	lquery, largs := p.LeftField.ToSQL(excludeTableQualifiers)
-	rquery, rargs := p.RightField.ToSQL(excludeTableQualifiers)
+	lquery, largs := p.LeftField.ToSQLExclude(excludeTableQualifiers)
+	rquery, rargs := p.RightField.ToSQLExclude(excludeTableQualifiers)
 	query := lquery + " " + string(p.Operator) + " " + rquery
 	args := append(largs, rargs...)
 	return query, args
@@ -216,7 +216,7 @@ type TernaryPredicate struct {
 	FieldY   Field
 }
 
-func (p TernaryPredicate) ToSQL(excludeTableQualifiers []string) (string, []interface{}) {
+func (p TernaryPredicate) ToSQLExclude(excludeTableQualifiers []string) (string, []interface{}) {
 	if p.Operator == "" {
 		p.Operator = PredicateBetween
 	}
@@ -229,9 +229,9 @@ func (p TernaryPredicate) ToSQL(excludeTableQualifiers []string) (string, []inte
 	if p.FieldY == nil {
 		p.FieldY = _NULL
 	}
-	query, args := p.Field.ToSQL(excludeTableQualifiers)
-	queryX, argsX := p.FieldX.ToSQL(excludeTableQualifiers)
-	queryY, argsY := p.FieldY.ToSQL(excludeTableQualifiers)
+	query, args := p.Field.ToSQLExclude(excludeTableQualifiers)
+	queryX, argsX := p.FieldX.ToSQLExclude(excludeTableQualifiers)
+	queryY, argsY := p.FieldY.ToSQLExclude(excludeTableQualifiers)
 	query = query + " " + string(p.Operator) + " " + queryX + " AND " + queryY
 	args = append(args, argsX...)
 	args = append(args, argsY...)

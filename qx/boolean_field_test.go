@@ -81,7 +81,7 @@ func TestBooleanField_ToSQL(t *testing.T) {
 		t.Run(tt.DESCRIPTION, func(t *testing.T) {
 			t.Parallel()
 			is := is.New(t)
-			gotQuery, gotArgs := tt.f.ToSQL(tt.excludeTableQualifiers)
+			gotQuery, gotArgs := tt.f.ToSQLExclude(tt.excludeTableQualifiers)
 			is.Equal(tt.wantQuery, gotQuery)
 			is.Equal(tt.wantArgs, gotArgs)
 		})
@@ -102,7 +102,7 @@ func TestBooleanField_GameTheNumbers(t *testing.T) {
 	f.Set(false)
 	f.SetBool(true)
 	// Not
-	query, args = f.Not().ToSQL(nil)
+	query, args = f.Not().ToSQLExclude(nil)
 	is.Equal(query, "NOT users.is_user")
 	is.Equal(args, nil)
 	// Predicates

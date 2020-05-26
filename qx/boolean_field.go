@@ -28,7 +28,7 @@ type BooleanField struct {
 // the BooleanField internal struct comments). If the BooleanField's table name
 // appears in the excludeTableQualifiers list, the output column name will not
 // be table qualified.
-func (f BooleanField) ToSQL(excludeTableQualifiers []string) (string, []interface{}) {
+func (f BooleanField) ToSQLExclude(excludeTableQualifiers []string) (string, []interface{}) {
 	// 1) Literal bool value
 	if f.value != nil {
 		return "?", []interface{}{*f.value}
@@ -183,7 +183,7 @@ func (f BooleanField) Ne(field BooleanField) Predicate {
 // String implements the fmt.Stringer interface. It returns the string
 // representation of a BooleanField.
 func (f BooleanField) String() string {
-	query, args := f.ToSQL(nil)
+	query, args := f.ToSQLExclude(nil)
 	return MySQLInterpolateSQL(query, args...)
 }
 

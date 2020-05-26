@@ -33,7 +33,7 @@ type TimeField struct {
 // TimeField internal struct comments). If the TimeFields's table name
 // appears in the excludeTableQualifiers list, the output column name will not
 // be table qualified.
-func (f TimeField) ToSQL(excludeTableQualifiers []string) (string, []interface{}) {
+func (f TimeField) ToSQLExclude(excludeTableQualifiers []string) (string, []interface{}) {
 	// 1) Literal time.Time value
 	if f.value != nil {
 		return "?", []interface{}{*f.value}
@@ -359,7 +359,7 @@ func (f TimeField) NotBetweenSymmetricTime(start, end time.Time) Predicate {
 // String implements the fmt.Stringer interface. It returns the string
 // representation of a TimeField.
 func (f TimeField) String() string {
-	query, args := f.ToSQL(nil)
+	query, args := f.ToSQLExclude(nil)
 	return MySQLInterpolateSQL(query, args...)
 }
 

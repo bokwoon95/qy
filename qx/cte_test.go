@@ -65,15 +65,15 @@ func TestCTE_GameTheNumbers(t *testing.T) {
 	cte.ToSQL()
 	cte.GetAlias()
 	cte.GetName()
-	query, _ = cte.Get("xkcd").ToSQL(nil)
+	query, _ = cte.Get("xkcd").ToSQLExclude(nil)
 	is.Equal("my_cte.xkcd", query)
-	query, _ = cte.Get("xkcd").ToSQL([]string{"my_cte"})
+	query, _ = cte.Get("xkcd").ToSQLExclude([]string{"my_cte"})
 	is.Equal("my_cte.xkcd", query) // CTEs are not expected to respect excludeTableQualifiers, only Predicates and Fields are
 	aliasedcte := cte.As("other_cte")
 	is.Equal("other_cte", aliasedcte.GetAlias())
 	is.Equal("my_cte", aliasedcte.GetName())
 	query, _ = aliasedcte.ToSQL()
 	is.Equal("my_cte", query)
-	query, _ = aliasedcte.Get("xkcd").ToSQL(nil)
+	query, _ = aliasedcte.Get("xkcd").ToSQLExclude(nil)
 	is.Equal("other_cte.xkcd", query)
 }

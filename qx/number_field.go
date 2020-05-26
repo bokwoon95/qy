@@ -41,7 +41,7 @@ type NumberField struct {
 // NumberField internal struct comments). If the BooleanField's table name
 // appears in the excludeTableQualifiers list, the output column name will not
 // be table qualified.
-func (f NumberField) ToSQL(excludeTableQualifiers []string) (string, []interface{}) {
+func (f NumberField) ToSQLExclude(excludeTableQualifiers []string) (string, []interface{}) {
 	// 1) Number expression
 	if f.format != nil {
 		values := make([]interface{}, len(f.fields))
@@ -52,7 +52,7 @@ func (f NumberField) ToSQL(excludeTableQualifiers []string) (string, []interface
 			Alias:  f.alias,
 			Format: *f.format,
 			Values: values,
-		}.ToSQL(excludeTableQualifiers)
+		}.ToSQLExclude(excludeTableQualifiers)
 	}
 
 	// 2) Literal number value
@@ -387,7 +387,7 @@ func (f NumberField) In(v interface{}) Predicate {
 // String implements the fmt.Stringer interface. It returns the string
 // representation of a NumberField.
 func (f NumberField) String() string {
-	query, args := f.ToSQL(nil)
+	query, args := f.ToSQLExclude(nil)
 	return MySQLInterpolateSQL(query, args...)
 }
 

@@ -51,7 +51,7 @@ func TestCustomField_ToSQL(t *testing.T) {
 		t.Run(tt.DESCRIPTION, func(t *testing.T) {
 			t.Parallel()
 			is := is.New(t)
-			gotQuery, gotArgs := tt.field.ToSQL(tt.excludeTableQualifiers)
+			gotQuery, gotArgs := tt.field.ToSQLExclude(tt.excludeTableQualifiers)
 			is.Equal(tt.wantQuery, gotQuery)
 			is.Equal(tt.wantArgs, gotArgs)
 		})
@@ -67,7 +67,7 @@ func TestCustomField_GameTheNumbers(t *testing.T) {
 			return lipsum, nil
 		},
 	}.As("lipsum")
-	query, _ := field.ToSQL(nil)
+	query, _ := field.ToSQLExclude(nil)
 	is.Equal(lipsum, query)
 	field.IsNull()
 	field.IsNotNull()

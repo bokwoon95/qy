@@ -93,7 +93,7 @@ func TestArrayField_Literal_ToSQL(t *testing.T) {
 		t.Run(tt.DESCRIPTION, func(t *testing.T) {
 			t.Parallel()
 			is := is.New(t)
-			gotQuery, gotArgs := tt.field.ToSQL(nil)
+			gotQuery, gotArgs := tt.field.ToSQLExclude(nil)
 			is.Equal(tt.wantQuery, gotQuery)
 			is.Equal(tt.wantArgs, gotArgs)
 		})
@@ -150,7 +150,7 @@ func TestArrayField_Column_ToSQL(t *testing.T) {
 		t.Run(tt.DESCRIPTION, func(t *testing.T) {
 			t.Parallel()
 			is := is.New(t)
-			gotQuery, gotArgs := tt.field.ToSQL(tt.excludeTableQualifiers)
+			gotQuery, gotArgs := tt.field.ToSQLExclude(tt.excludeTableQualifiers)
 			is.Equal(tt.wantQuery, gotQuery)
 			is.Equal(tt.wantArgs, gotArgs)
 		})
@@ -168,7 +168,7 @@ func TestArrayField_GameTheNumbers(t *testing.T) {
 	f.Set(Array([]int{1, 2, 3}))
 	// Predicates
 	stringify := func(p Predicate) string {
-		query, args := p.ToSQL(nil)
+		query, args := p.ToSQLExclude(nil)
 		return MySQLInterpolateSQL(query, args...)
 	}
 	f.IsNull()

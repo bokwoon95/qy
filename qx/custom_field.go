@@ -19,7 +19,7 @@ type CustomField struct {
 
 // ToSQL marshals a CustomField into an SQL query and args as described in the
 // CustomField struct description.
-func (f CustomField) ToSQL(excludeTableQualifiers []string) (string, []interface{}) {
+func (f CustomField) ToSQLExclude(excludeTableQualifiers []string) (string, []interface{}) {
 	var query string
 	var args []interface{}
 	if f.CustomSprintf != nil {
@@ -166,7 +166,7 @@ func (f CustomField) In(v interface{}) Predicate {
 // String implements the fmt.Stringer interface. It returns the string
 // representation of a CustomField.
 func (f CustomField) String() string {
-	query, args := f.ToSQL(nil)
+	query, args := f.ToSQLExclude(nil)
 	return MySQLInterpolateSQL(query, args...)
 }
 
@@ -179,6 +179,6 @@ func (f CustomField) GetAlias() string {
 // GetName implements the Field interface. It returns the name of the
 // CustomField.
 func (f CustomField) GetName() string {
-	name, _ := f.ToSQL(nil)
+	name, _ := f.ToSQLExclude(nil)
 	return name
 }

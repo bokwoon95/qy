@@ -14,7 +14,7 @@ const (
 )
 
 // ToSQL returns the underlying string of the FieldLiteral.
-func (f FieldLiteral) ToSQL([]string) (string, []interface{}) {
+func (f FieldLiteral) ToSQLExclude([]string) (string, []interface{}) {
 	return string(f), nil
 }
 
@@ -48,7 +48,7 @@ func (fs Fields) WriteSQL(buf *strings.Builder, args *[]interface{}, prependWith
 		if fs[i] == nil {
 			fs[i] = _NULL
 		}
-		subquery, subargs := fs[i].ToSQL(excludeTableQualifiers)
+		subquery, subargs := fs[i].ToSQLExclude(excludeTableQualifiers)
 		if subquery == "" {
 			continue
 		}
@@ -75,7 +75,7 @@ func (fs Fields) WriteSQLWithAlias(buf *strings.Builder, args *[]interface{}, pr
 		if fs[i] == nil {
 			fs[i] = _NULL
 		}
-		subquery, subargs := fs[i].ToSQL(excludeTableQualifiers)
+		subquery, subargs := fs[i].ToSQLExclude(excludeTableQualifiers)
 		if subquery == "" {
 			continue
 		}
@@ -119,12 +119,12 @@ func (sets FieldValueSets) WriteSQL(buf *strings.Builder, args *[]interface{}, p
 			// can't convert a nil Field to NULL here, the left hand field of a SET X = Y must actually be a column
 			continue
 		}
-		subquery, subargs := sets[i].Field.ToSQL(excludeTableQualifiers)
+		subquery, subargs := sets[i].Field.ToSQLExclude(excludeTableQualifiers)
 		if subquery == "" {
 			continue
 		}
 		if field, ok := sets[i].Value.(Field); ok && field != nil {
-			q, a := field.ToSQL(excludeTableQualifiers)
+			q, a := field.ToSQLExclude(excludeTableQualifiers)
 			subquery = subquery + " = " + q
 			subargs = append(subargs, a...)
 		} else {

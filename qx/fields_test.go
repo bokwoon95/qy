@@ -15,7 +15,7 @@ func TestFieldLiteral(t *testing.T) {
 	var _ Field = abc
 	is.Equal("abc", abc.GetName())
 	is.Equal("", abc.GetAlias())
-	query, args = abc.ToSQL(nil)
+	query, args = abc.ToSQLExclude(nil)
 	is.Equal("abc", query)
 	is.Equal(nil, args)
 }

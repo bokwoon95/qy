@@ -33,9 +33,9 @@ func defaultSprintf(format string, values []interface{}, excludeTableQualifiers 
 		case Table:
 			query, args = value.ToSQL()
 		case Predicate:
-			query, args = value.ToSQL(excludeTableQualifiers)
+			query, args = value.ToSQLExclude(excludeTableQualifiers)
 		case Field:
-			query, args = value.ToSQL(excludeTableQualifiers)
+			query, args = value.ToSQLExclude(excludeTableQualifiers)
 		case Fields:
 			buf := &strings.Builder{}
 			value.WriteSQL(buf, &args, "", "", excludeTableQualifiers)

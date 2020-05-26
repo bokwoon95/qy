@@ -40,7 +40,7 @@ func TestCustomPredicate_ToSQL(t *testing.T) {
 		t.Run(tt.DESCRIPTION, func(t *testing.T) {
 			t.Parallel()
 			is := is.New(t)
-			gotQuery, gotArgs := tt.p.ToSQL(nil)
+			gotQuery, gotArgs := tt.p.ToSQLExclude(nil)
 			is.Equal(tt.wantQuery, gotQuery)
 			is.Equal(tt.wantArgs, gotArgs)
 		})
@@ -177,7 +177,7 @@ func TestVariadicPredicates_ToSQL(t *testing.T) {
 		t.Run(tt.DESCRIPTION, func(t *testing.T) {
 			t.Parallel()
 			is := is.New(t)
-			gotQuery, gotArgs := tt.p.ToSQL(tt.excludeTableQualifiers)
+			gotQuery, gotArgs := tt.p.ToSQLExclude(tt.excludeTableQualifiers)
 			is.Equal(tt.wantQuery, gotQuery)
 			is.Equal(tt.wantArgs, gotArgs)
 		})
@@ -309,7 +309,7 @@ func TestUnaryPredicate_ToSQL(t *testing.T) {
 		t.Run(tt.DESCRIPTION, func(t *testing.T) {
 			t.Parallel()
 			is := is.New(t)
-			gotQuery, gotArgs := tt.p.ToSQL(tt.excludeTableQualifiers)
+			gotQuery, gotArgs := tt.p.ToSQLExclude(tt.excludeTableQualifiers)
 			is.Equal(tt.wantQuery, gotQuery)
 			is.Equal(tt.wantArgs, gotArgs)
 		})
@@ -361,7 +361,7 @@ func TestBinaryPredicate_ToSQL(t *testing.T) {
 		t.Run(tt.DESCRIPTION, func(t *testing.T) {
 			t.Parallel()
 			is := is.New(t)
-			gotQuery, gotArgs := tt.p.ToSQL(tt.excludeTableQualifiers)
+			gotQuery, gotArgs := tt.p.ToSQLExclude(tt.excludeTableQualifiers)
 			is.Equal(tt.wantQuery, gotQuery)
 			is.Equal(tt.wantArgs, gotArgs)
 		})
@@ -402,7 +402,7 @@ func TestTernaryPredicate_ToSQL(t *testing.T) {
 		t.Run(tt.DESCRIPTION, func(t *testing.T) {
 			t.Parallel()
 			is := is.New(t)
-			gotQuery, gotArgs := tt.p.ToSQL(tt.excludeTableQualifiers)
+			gotQuery, gotArgs := tt.p.ToSQLExclude(tt.excludeTableQualifiers)
 			is.Equal(tt.wantQuery, gotQuery)
 			is.Equal(tt.wantArgs, gotArgs)
 		})
@@ -415,7 +415,7 @@ func TestBinaryPredicate_GameTheNumbers(t *testing.T) {
 			return "", nil
 		},
 	}
-	custom.ToSQL(nil)
+	custom.ToSQLExclude(nil)
 	custom.AssertPredicate()
 	VariadicPredicate{}.AssertPredicate()
 	UnaryPredicate{}.AssertPredicate()

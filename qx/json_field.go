@@ -32,7 +32,7 @@ func (j jsonwrapper) MarshalJSON() ([]byte, error) {
 // JSONField internal struct comments). If the JSONField's table name appears
 // in the excludeTableQualifiers list, the output column name will not be table
 // qualified.
-func (f JSONField) ToSQL(excludeTableQualifiers []string) (string, []interface{}) {
+func (f JSONField) ToSQLExclude(excludeTableQualifiers []string) (string, []interface{}) {
 	// 1) Literal JSONable value
 	if f.value != nil {
 		switch f.value.(type) {
@@ -182,7 +182,7 @@ func (f JSONField) IsNotNull() Predicate {
 // String implements the fmt.Stringer interface. It returns the string
 // representation of a JSONField.
 func (f JSONField) String() string {
-	query, args := f.ToSQL(nil)
+	query, args := f.ToSQLExclude(nil)
 	return MySQLInterpolateSQL(query, args...)
 }
 

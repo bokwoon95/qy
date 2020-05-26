@@ -35,7 +35,7 @@ type StringField struct {
 // StringField internal struct comments). If the BooleanField's table name
 // appears in the excludeTableQualifiers list, the output column name will not
 // be table qualified.
-func (f StringField) ToSQL(excludeTableQualifiers []string) (string, []interface{}) {
+func (f StringField) ToSQLExclude(excludeTableQualifiers []string) (string, []interface{}) {
 	// 1) Literal string value
 	if f.value != nil {
 		return "?", []interface{}{*f.value}
@@ -318,7 +318,7 @@ func (f StringField) In(v interface{}) Predicate {
 // String implements the fmt.Stringer interface. It returns the string
 // representation of a StringField.
 func (f StringField) String() string {
-	query, args := f.ToSQL(nil)
+	query, args := f.ToSQLExclude(nil)
 	return MySQLInterpolateSQL(query, args...)
 }
 
