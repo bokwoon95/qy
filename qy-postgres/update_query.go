@@ -263,3 +263,9 @@ func (q UpdateQuery) Exec(db qx.Queryer) (err error) {
 	}
 	return rows.Err()
 }
+
+func (q UpdateQuery) ExecWithLog(db qx.Queryer, log qx.Logger) error {
+	q.LogSkip += 1
+	q.Log = log
+	return q.Exec(db)
+}
