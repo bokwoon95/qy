@@ -53,6 +53,11 @@ type Field interface {
 	GetName() string
 }
 
+type Function interface {
+	Table
+	Field
+}
+
 // Queryer is an interface used to query the database.
 type Queryer interface {
 	Query(query string, args ...interface{}) (*sql.Rows, error)

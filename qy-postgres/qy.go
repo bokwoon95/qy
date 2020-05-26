@@ -121,16 +121,16 @@ func CustomSprintf(format string, values []interface{}, excludeTableQualifiers [
 		switch value := values[i].(type) {
 		case nil:
 			query, args = "NULL", nil
-		case qx.Table:
-			query, args = value.ToSQL()
-		case qx.Predicate:
-			query, args = value.ToSQLExclude(excludeTableQualifiers)
 		case qx.Field:
 			query, args = value.ToSQLExclude(excludeTableQualifiers)
 		case qx.Fields:
 			buf := &strings.Builder{}
 			value.WriteSQL(buf, &args, "", "", excludeTableQualifiers)
 			query = buf.String()
+		case qx.Predicate:
+			query, args = value.ToSQLExclude(excludeTableQualifiers)
+		case qx.Table:
+			query, args = value.ToSQL()
 		case qx.FieldValueSet:
 			sets := qx.FieldValueSets{value}
 			buf := &strings.Builder{}

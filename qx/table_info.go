@@ -1,5 +1,10 @@
 package qx
 
+type Tobbel interface {
+	Table
+	SetAlias(alias string)
+}
+
 // TableInfo is struct that implements the Table interface, containing all the
 // information needed to call itself a Table. It is meant to be embedded in
 // arbitrary structs to also transform them into valid Tables.

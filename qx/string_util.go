@@ -30,16 +30,16 @@ func defaultSprintf(format string, values []interface{}, excludeTableQualifiers 
 		switch value := values[i].(type) {
 		case nil:
 			query, args = "NULL", nil
-		case Table:
-			query, args = value.ToSQL()
-		case Predicate:
-			query, args = value.ToSQLExclude(excludeTableQualifiers)
 		case Field:
 			query, args = value.ToSQLExclude(excludeTableQualifiers)
 		case Fields:
 			buf := &strings.Builder{}
 			value.WriteSQL(buf, &args, "", "", excludeTableQualifiers)
 			query = buf.String()
+		case Predicate:
+			query, args = value.ToSQLExclude(excludeTableQualifiers)
+		case Table:
+			query, args = value.ToSQL()
 		case FieldValueSet:
 			sets := FieldValueSets{value}
 			buf := &strings.Builder{}
