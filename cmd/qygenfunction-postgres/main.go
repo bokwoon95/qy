@@ -69,7 +69,7 @@ func main() {
 	if err != nil {
 		printAndExit(err)
 	}
-	fmt.Println("Result:      ", strconv.Itoa(len(tables)), "tables written into", filepath.Join(config.directory, config.file))
+	fmt.Println("Result:      ", strconv.Itoa(len(tables)), "functions written into", filepath.Join(config.directory, config.file))
 }
 
 type Function struct {
@@ -123,6 +123,13 @@ NEXT_ROW:
 			Name:         functionName,
 			RawResults:   functionResults,
 			RawArguments: functionArguments,
+		}
+		if functionSchema == "public" {
+			function.StructName = "FUNCTION_" + strings.ToUpper(functionName)
+			function.Constructor = strings.ToUpper(functionName)
+		} else {
+			function.StructName = "FUNCTION_" + strings.ToUpper(functionSchema+"__"+functionName)
+			function.Constructor = strings.ToUpper(functionSchema + "__" + functionName)
 		}
 		{ // function.Arguments
 			switch {
@@ -396,11 +403,11 @@ import (
 
 {{- define "function_struct_definition"}}
 {{- with $function := .}}
-// {{uppercase $function.StructName}} references the {{$function.Schema}}.{{$function.Name}} function
-type {{uppercase $function.StructName}} struct {
+// {{$function.StructName | uppercase }} references the {{$function.Schema}}.{{$function.Name}} function
+type {{$function.StructName | uppercase}} struct {
 	*qx.FunctionInfo
 	{{- range $_, $field := $function.Results}}
-	{{uppercase $field.Name}} {{$field.FieldType}}
+	{{$field.Name | uppercase | trimUnderscorePrefix}} {{$field.FieldType}}
 	{{- end}}
 }
 {{- end}}
@@ -408,21 +415,29 @@ type {{uppercase $function.StructName}} struct {
 
 {{- define "function_constructor"}}
 {{- with $function := .}}
-// {{$function.Constructor}} creates an instance of the {{$function.Schema}}.{{$function.Name}} table
-func {{$function.Constructor}}({{range $i, $arg := $function.Arguments}}{{if not $i}}{{$arg.Name}} {{$arg.GoType}}{{else}}, {{$arg.Name}} {{$arg.GoType}}{{end}}) {{$function.StructName}} {
-	return {{$function.Constructor}}_({{range $i, $arg := $function.Arguments}}{{if not $i}}{{$arg.Name}}{{else}}, {{$arg.Name}}{{end}})
+// {{$function.Constructor | trimUnderscorePrefix}} creates an instance of the {{$function.Schema}}.{{$function.Name}} table
+func {{$function.Constructor | trimUnderscorePrefix}}(
+	{{- range $i, $arg := $function.Arguments}}
+	{{$arg.Name}} {{$arg.GoType}},
+	{{- end}}
+	) {{$function.StructName}} {
+	return {{$function.Constructor}}_({{range $i, $arg := $function.Arguments}}{{if not $i}}{{$arg.Name}}{{else}}, {{$arg.Name}}{{end}}{{end}})
 }
 
-// {{$function.Constructor}}_ creates an instance of the {{$function.Schema}}.{{$function.Name}} table
-func {{$function.Constructor}}_({{range $i, $arg := $function.Arguments}}{{if not $i}}{{$arg.Name}} interface{}{{else}}, {{$arg.Name}} interface{}{{end}}) {{$function.StructName}} {
-	f := {{$function.StructName}}{FunctionInfo: qx.FunctionInfo{
+// {{$function.Constructor | trimUnderscorePrefix}}_ creates an instance of the {{$function.Schema}}.{{$function.Name}} table
+func {{$function.Constructor | trimUnderscorePrefix}}_(
+	{{- range $i, $arg := $function.Arguments}}
+	{{$arg.Name}} {{$arg.GoType}},
+	{{- end}}
+	) {{$function.StructName}} {
+	f := {{$function.StructName}}{FunctionInfo: &qx.FunctionInfo{
 		Schema: "{{$function.Schema}}",
 		Name: "{{$function.Name}}",
-		Arguments: []interface{}{{"{"}}{{range $i, $arg := $function.Arguments}}{{if not $i}}{{$arg.Name}}{{else}}, {{$arg.Name}}{{end}}{{"}"}},
+		Arguments: []interface{}{{"{"}}{{range $i, $arg := $function.Arguments}}{{if not $i}}{{$arg.Name}}{{else}}, {{$arg.Name}}{{end}}{{end}}{{"}"}},
 		CustomSprintf: qy.CustomSprintf,
-	}
+	}}
 	{{- range $_, $field := $function.Results}}
-	f.{{uppercase $field.Name}} = {{$field.Constructor}}("{{$field.Name}}", f.FunctionInfo)
+	f.{{$field.Name | uppercase | trimUnderscorePrefix}} = {{$field.Constructor}}("{{$field.Name}}", f.FunctionInfo)
 	{{- end}}
 	return f
 }
@@ -432,9 +447,8 @@ func {{$function.Constructor}}_({{range $i, $arg := $function.Arguments}}{{if no
 {{- define "function_as"}}
 {{- with $function := .}}
 func (f {{$function.StructName}}) As(alias string) {{$function.StructName}} {
-	f2 := {{$function.Constructor}}()
-	f2.FunctionInfo.Alias = alias
-	return f2
+	f.FunctionInfo.Alias = alias
+	return f
 }
 {{- end}}
 {{- end}}`
@@ -452,7 +466,10 @@ func writeFunctionsToFile(functions []Function, directory, file, packageName str
 		return err
 	}
 	defer f.Close()
-	t, err := template.New("").Funcs(template.FuncMap{"uppercase": strings.ToUpper}).Parse(qygenfunctionTemplate)
+	t, err := template.New("").Funcs(template.FuncMap{
+		"uppercase":            strings.ToUpper,
+		"trimUnderscorePrefix": func(s string) string { return strings.TrimPrefix(s, "_") },
+	}).Parse(qygenfunctionTemplate)
 	if err != nil {
 		return err
 	}
@@ -461,7 +478,7 @@ func writeFunctionsToFile(functions []Function, directory, file, packageName str
 		Imports:     Imports,
 		Functions:   functions,
 	}
-	err = t.Execute(os.Stdout, data)
+	err = t.Execute(f, data)
 	if err != nil {
 		return err
 	}
@@ -587,41 +604,4 @@ func (f Function) String() string {
 		// }
 	}
 	return output
-}
-
-/* Type classification functions */
-
-func isString(rawtype string) bool {
-	// https://www.postgresql.org/docs/current/datatype-character.html
-	switch {
-	case rawtype == "text", strings.HasPrefix(rawtype, "char"), strings.HasPrefix(rawtype, "varchar"):
-		return true
-	case rawtype == "name":
-		// https://dba.stackexchange.com/questions/217533/what-is-the-data-type-name-in-postgresql
-		return true
-	default:
-		return false
-	}
-}
-
-func isTime(rawtype string) bool {
-	// https://www.postgresql.org/docs/current/datatype-datetime.html
-	switch {
-	case strings.HasPrefix(rawtype, "time"), rawtype == "date":
-		return true
-	default:
-		return false
-	}
-}
-
-func isEnum(rawtype string) bool {
-	return rawtype == "USER-DEFINED"
-}
-
-func isArray(rawtype string) bool {
-	return rawtype == "ARRAY"
-}
-
-func isBytes(rawtype string) bool {
-	return rawtype == "bytea"
 }
