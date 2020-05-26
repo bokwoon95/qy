@@ -24,7 +24,7 @@ type Query interface {
 // only tables/views that exist in the database.
 type BaseTable interface {
 	Table
-	GetFields() []Field
+	AssertBaseTable()
 }
 
 // Predicate is an interface that evaluates to true or false in SQL.

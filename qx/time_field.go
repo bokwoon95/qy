@@ -23,7 +23,7 @@ type TimeField struct {
 	// | created_at       |      |
 	// | events.start_at  |      |
 	alias      string
-	table      *TableInfo
+	table      Table
 	name       string
 	descending *bool
 	nullsfirst *bool
@@ -73,13 +73,11 @@ func (f TimeField) ToSQLExclude(excludeTableQualifiers []string) (string, []inte
 }
 
 // NewTimeField returns a new TimeField representing a time column.
-func NewTimeField(name string, tbl *TableInfo) TimeField {
-	f := TimeField{
+func NewTimeField(name string, table Table) TimeField {
+	return TimeField{
 		name:  name,
-		table: tbl,
+		table: table,
 	}
-	f.table.Fields = append(f.table.Fields, &f)
-	return f
 }
 
 // Time returns a new TimeField representing a literal time.Time value.

@@ -27,7 +27,7 @@ type ArrayField struct {
 	// | film.special_features |      |
 	// | special_features      |      |
 	alias      string
-	table      *TableInfo
+	table      Table
 	name       string
 	descending *bool
 	nullsfirst *bool
@@ -129,13 +129,11 @@ func (f ArrayField) ToSQLExclude(excludeTableQualifiers []string) (string, []int
 }
 
 // NewArrayField returns a new ArrayField representing an array column.
-func NewArrayField(name string, table *TableInfo) ArrayField {
-	f := ArrayField{
+func NewArrayField(name string, table Table) ArrayField {
+	return ArrayField{
 		name:  name,
 		table: table,
 	}
-	f.table.Fields = append(f.table.Fields, &f)
-	return f
 }
 
 // Array returns a new ArrayField representing a literal string value.

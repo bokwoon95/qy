@@ -31,7 +31,7 @@ type NumberField struct {
 	// | uid                      |        |
 	// | users.uid ASC NULLS LAST |        |
 	alias      string
-	table      *TableInfo
+	table      Table
 	name       string
 	descending *bool
 	nullsfirst *bool
@@ -94,13 +94,11 @@ func (f NumberField) ToSQLExclude(excludeTableQualifiers []string) (string, []in
 }
 
 // NewNumberField returns a new NumberField representing a number TableInfo column.
-func NewNumberField(name string, tbl *TableInfo) NumberField {
-	f := NumberField{
+func NewNumberField(name string, table Table) NumberField {
+	return NumberField{
 		name:  name,
-		table: tbl,
+		table: table,
 	}
-	tbl.Fields = append(tbl.Fields, &f)
-	return f
 }
 
 // Int returns a new NumberField representing a literal int value.

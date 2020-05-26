@@ -18,7 +18,7 @@ type BooleanField struct {
 	// | users.is_created |      |
 	// | is_created       |      |
 	alias      string
-	table      *TableInfo
+	table      Table
 	name       string
 	descending *bool
 	nullsfirst *bool
@@ -68,13 +68,11 @@ func (f BooleanField) ToSQLExclude(excludeTableQualifiers []string) (string, []i
 }
 
 // NewBooleanField returns a new BooleanField representing a boolean column.
-func NewBooleanField(name string, table *TableInfo) BooleanField {
-	f := BooleanField{
+func NewBooleanField(name string, table Table) BooleanField {
+	return BooleanField{
 		name:  name,
 		table: table,
 	}
-	f.table.Fields = append(f.table.Fields, f)
-	return f
 }
 
 // Bool returns a new Boolean Field representing a literal bool value.

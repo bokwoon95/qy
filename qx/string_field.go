@@ -2,7 +2,7 @@ package qx
 
 type EnumField = StringField
 
-func NewEnumField(name string, table *TableInfo) EnumField {
+func NewEnumField(name string, table Table) EnumField {
 	return NewStringField(name, table)
 }
 
@@ -25,7 +25,7 @@ type StringField struct {
 	// | name        |      |
 	// | users.email |      |
 	alias      string
-	table      *TableInfo
+	table      Table
 	name       string
 	descending *bool
 	nullsfirst *bool
@@ -75,13 +75,11 @@ func (f StringField) ToSQLExclude(excludeTableQualifiers []string) (string, []in
 }
 
 // NewStringField returns a new StringField representing a boolean column.
-func NewStringField(name string, table *TableInfo) StringField {
-	f := StringField{
+func NewStringField(name string, table Table) StringField {
+	return StringField{
 		name:  name,
 		table: table,
 	}
-	f.table.Fields = append(f.table.Fields, &f)
-	return f
 }
 
 // String returns a new StringField representing a literal string value.

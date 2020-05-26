@@ -14,7 +14,7 @@ type JSONField struct {
 
 	// 2) JSON column
 	alias      string
-	table      *TableInfo
+	table      Table
 	name       string
 	descending *bool
 	nullsfirst *bool
@@ -77,13 +77,11 @@ func (f JSONField) ToSQLExclude(excludeTableQualifiers []string) (string, []inte
 }
 
 // NewJSONField returns a new JSONField representing a JSON column.
-func NewJSONField(name string, tbl *TableInfo) JSONField {
-	f := JSONField{
+func NewJSONField(name string, table Table) JSONField {
+	return JSONField{
 		name:  name,
-		table: tbl,
+		table: table,
 	}
-	f.table.Fields = append(f.table.Fields, &f)
-	return f
 }
 
 // JSON returns a new JSONField representing a literal JSONable value. It
