@@ -26,7 +26,7 @@ func main() {
 		databaseFlag  = flag.String("database", "", "(required) Database URL")
 		directoryFlag = flag.String("directory", filepath.Join(currdir, "tables"), "(optional) Directory to place the generated file. Can be absolute or relative filepath")
 		dryrunFlag    = flag.Bool("dryrun", false, "(optional) Print the list of tables to be generated without generating the file")
-		fileFlag      = flag.String("file", "tables.go", "(optional) Name of the file to be generated. If file already exists, -overwrite flag must be specified to overwrite the file")
+		fileFlag      = flag.String("file", "functions.go", "(optional) Name of the file to be generated. If file already exists, -overwrite flag must be specified to overwrite the file")
 		overwriteFlag = flag.Bool("overwrite", false, "(optional) Overwrite any files that already exist")
 		packageFlag   = flag.String("package", "tables", "(optional) Package name of the file to be generated")
 		schemasFlag   = flag.String("schema", "", "(required) A comma separated list of schemas that you want to generate tables for. Please don't include any spaces")
@@ -55,7 +55,7 @@ func main() {
 	if err != nil {
 		printAndExit(err)
 	}
-	if config.dryrun || true {
+	if config.dryrun {
 		// Here is where you can print the list of filtered tables before you
 		// actually write it out to a file.
 		for _, table := range tables {
@@ -111,6 +111,7 @@ func getFunctions(db *sql.DB, databaseURL string, schemas []string) ([]Function,
 		return functions, err
 	}
 	defer rows.Close()
+NEXT_ROW:
 	for rows.Next() {
 		var functionSchema, functionName, functionResults, functionArguments string
 		err := rows.Scan(&functionSchema, &functionName, &functionResults, &functionArguments)
@@ -123,36 +124,204 @@ func getFunctions(db *sql.DB, databaseURL string, schemas []string) ([]Function,
 			RawResults:   functionResults,
 			RawArguments: functionArguments,
 		}
-		{ // function.Results
-			var rawFields []string
+		{ // function.Arguments
 			switch {
+			case functionArguments == "":
+				// Do nothing
+			default:
+				rawFields := strings.Split(functionArguments, ",")
+				for i := range rawFields {
+					field := extractNameAndType(strings.TrimSpace(rawFields[i]))
+					if field.RawField != "void" && field.FieldType == "" {
+						fmt.Printf("Skipping %s.%s: unable to process argument '%s'\n", function.Schema, function.Name, field.RawField)
+						continue NEXT_ROW
+					}
+					if field.Name == "" {
+						field.Name = "_arg" + strconv.Itoa(i+1)
+					}
+					function.Arguments = append(function.Arguments, field)
+				}
+			}
+		}
+		{ // function.Results
+			var fields []Field
+			switch {
+			case function.RawResults == "void":
+				// Do nothing
 			case strings.HasPrefix(functionResults, "TABLE(") && strings.HasSuffix(functionResults, ")"):
 				functionResults = functionResults[6 : len(functionResults)-1]
-				rawFields = strings.Split(functionResults, ",")
+				rawFields := strings.Split(functionResults, ",")
 				for i := range rawFields {
-					field := Field{RawField: strings.TrimSpace(rawFields[i])}
-					field = extractNameAndType(rawFields[i])
-					function.Results = append(function.Results, field)
+					field := extractNameAndType(strings.TrimSpace(rawFields[i]))
+					fields = append(fields, field)
 				}
 			default:
 				if strings.HasPrefix(functionResults, "SETOF ") {
 					functionResults = functionResults[6:]
 				}
-				function.Results = []Field{{RawField: functionResults}}
+				field := extractNameAndType(strings.TrimSpace(functionResults))
+				field.Name = "Result"
+				fields = append(fields, field)
 			}
-		}
-		{ // function.Arguments
-			var rawFields []string
-			rawFields = strings.Split(functionArguments, ",")
-			for i := range rawFields {
-				field := Field{RawField: strings.TrimSpace(rawFields[i])}
-				field = extractNameAndType(rawFields[i])
-				function.Arguments = append(function.Arguments, field)
+			for i := range fields {
+				switch {
+				case fields[i].FieldType == "":
+					fmt.Printf("Skipping %s.%s: unable to process return value '%s'\n", function.Schema, function.Name, fields[i].RawField)
+					continue NEXT_ROW
+				default:
+					if fields[i].Name == "" {
+						fields[i].Name = "_res" + strconv.Itoa(i)
+					}
+					function.Results = append(function.Results, fields[i])
+				}
 			}
 		}
 		functions = append(functions, function)
 	}
 	return functions, nil
+}
+
+func extractNameAndType(rawField string) Field {
+	var field Field
+	field.RawField = rawField
+	if matches := regexp.
+		MustCompile(`boolean` +
+			`(\[\])?` +
+			`$`).
+		FindStringSubmatch(rawField); len(matches) == 2 {
+		// fmt.Println(rawField, matches)
+		// Boolean
+		field.Name = strings.TrimSpace(rawField[:len(rawField)-len(matches[0])])
+		if matches[1] == "[]" {
+			field.FieldType = FieldTypeArray
+			field.GoType = GoTypeBoolSlice
+			field.Constructor = FieldConstructorArray
+		} else {
+			field.FieldType = FieldTypeBoolean
+			field.GoType = GoTypeBool
+			field.Constructor = FieldConstructorBoolean
+		}
+
+	} else if matches := regexp.
+		MustCompile(`json` + `(?:b)?` +
+			`(\[\])?` +
+			`$`).
+		FindStringSubmatch(rawField); len(matches) == 2 {
+		// fmt.Println(rawField, matches)
+		// JSON
+		field.Name = strings.TrimSpace(rawField[:len(rawField)-len(matches[0])])
+		if matches[1] == "[]" {
+			field.FieldType = FieldTypeArray
+			field.GoType = GoTypeInterface
+			field.Constructor = FieldConstructorArray
+		} else {
+			field.FieldType = FieldTypeJSON
+			field.GoType = GoTypeInterface
+			field.Constructor = FieldConstructorJSON
+		}
+
+	} else if matches := regexp.
+		MustCompile(`(?:` + `smallint` +
+			`|` + `oid` +
+			`|` + `integer` +
+			`|` + `bigint` +
+			`|` + `smallserial` +
+			`|` + `serial` +
+			`|` + `bigserial` + `)` +
+			`(\[\])?` +
+			`$`).
+		FindStringSubmatch(rawField); len(matches) == 2 {
+		// fmt.Println(rawField, matches)
+		// Integer
+		field.Name = strings.TrimSpace(rawField[:len(rawField)-len(matches[0])])
+		if matches[1] == "[]" {
+			field.FieldType = FieldTypeArray
+			field.GoType = GoTypeIntSlice
+			field.Constructor = FieldConstructorArray
+		} else {
+			field.FieldType = FieldTypeNumber
+			field.GoType = GoTypeInt
+			field.Constructor = FieldConstructorNumber
+		}
+
+	} else if matches := regexp.
+		MustCompile(`(?:` + `decimal` +
+			`|` + `numeric` +
+			`|` + `real` +
+			`|` + `double precision` + `)` +
+			`(\[\])?` +
+			`$`).
+		FindStringSubmatch(rawField); len(matches) == 2 {
+		// fmt.Println(rawField, matches)
+		// Float
+		field.Name = strings.TrimSpace(rawField[:len(rawField)-len(matches[0])])
+		if matches[1] == "[]" {
+			field.FieldType = FieldTypeArray
+			field.GoType = GoTypeFloat64Slice
+			field.Constructor = FieldConstructorArray
+		} else {
+			field.FieldType = FieldTypeNumber
+			field.GoType = GoTypeFloat64
+			field.Constructor = FieldConstructorNumber
+		}
+
+	} else if matches := regexp.
+		MustCompile(`(?:` + `text` +
+			`|` + `name` +
+			`|` + `char` + `(?:\(\d+\))?` +
+			`|` + `character` + `(?:\(\d+\))?` +
+			`|` + `varchar` + `(?:\(\d+\))?` +
+			`|` + `character varying` + `(?:\(\d+\))?` + `)` +
+			`(\[\])?` +
+			`$`).
+		FindStringSubmatch(rawField); len(matches) == 2 {
+		// fmt.Println(rawField, matches)
+		// String
+		field.Name = strings.TrimSpace(rawField[:len(rawField)-len(matches[0])])
+		if matches[1] == "[]" {
+			field.FieldType = FieldTypeArray
+			field.GoType = GoTypeStringSlice
+			field.Constructor = FieldConstructorArray
+		} else {
+			field.FieldType = FieldTypeString
+			field.GoType = GoTypeString
+			field.Constructor = FieldConstructorString
+		}
+
+	} else if matches := regexp.
+		MustCompile(`(?:` + `date` +
+			`|` + `(?:time|timestamp)` +
+			`(?: \(\d+\))?` +
+			`(?: without time zone| with time zone)?` + `)` +
+			`(\[\])?` +
+			`$`).
+		FindStringSubmatch(rawField); len(matches) == 2 {
+		// fmt.Println(rawField, matches)
+		// Time
+		field.Name = strings.TrimSpace(rawField[:len(rawField)-len(matches[0])])
+		if matches[1] == "[]" {
+			// Do nothing
+		} else {
+			field.FieldType = FieldTypeTime
+			field.GoType = GoTypeTime
+			field.Constructor = FieldConstructorTime
+		}
+
+	} else if matches := regexp.
+		MustCompile(`bytea` +
+			`(\[\])?` +
+			`$`).
+		FindStringSubmatch(rawField); len(matches) == 2 {
+		if matches[1] == "[]" {
+			// Do nothing
+		} else {
+			field.FieldType = FieldTypeBinary
+			field.GoType = GoTypeBytes
+			field.Constructor = FieldConstructorBinary
+		}
+	}
+
+	return field
 }
 
 const (
@@ -219,51 +388,53 @@ import (
 	"{{$import}}"
 	{{- end}}
 )
-{{- range $_, $table := $.Tables}}
-{{template "table_struct_definition" $table}}
-{{template "table_constructor" $table}}
-{{template "table_as" $table}}
+{{- range $_, $function := $.Functions}}
+{{template "function_struct_definition" $function}}
+{{template "function_constructor" $function}}
+{{template "function_as" $function}}
 {{- end}}
 
-{{- define "table_struct_definition"}}
-{{- with $table := .}}
-{{- if eq $table.RawType "BASE TABLE"}}
-// {{uppercase $table.StructName}} references the {{$table.Schema}}.{{$table.Name}} table
-{{- else if eq $table.RawType "VIEW"}}
-// {{uppercase $table.StructName}} references the {{$table.Schema}}.{{$table.Name}} view
-{{- end}}
-type {{uppercase $table.StructName}} struct {
-	*qx.TableInfo
-	{{- range $_, $field := $table.Fields}}
-	{{uppercase $field.Name}} {{$field.Type}}
+{{- define "function_struct_definition"}}
+{{- with $function := .}}
+// {{uppercase $function.StructName}} references the {{$function.Schema}}.{{$function.Name}} function
+type {{uppercase $function.StructName}} struct {
+	*qx.FunctionInfo
+	{{- range $_, $field := $function.Results}}
+	{{uppercase $field.Name}} {{$field.FieldType}}
 	{{- end}}
 }
 {{- end}}
 {{- end}}
 
-{{- define "table_constructor"}}
-{{- with $table := .}}
-{{- if eq $table.RawType "BASE TABLE"}}
-// {{$table.Constructor}} creates an instance of the {{$table.Schema}}.{{$table.Name}} table
-{{- else if eq $table.RawType "VIEW"}}
-// {{$table.Constructor}} creates an instance of the {{$table.Schema}}.{{$table.Name}} view
-{{- end}}
-func {{$table.Constructor}}() {{$table.StructName}} {
-	tbl := {{$table.StructName}}{TableInfo: qx.NewTableInfo("{{$table.Schema}}", "{{$table.Name}}")}
-	{{- range $_, $field := $table.Fields}}
-	tbl.{{uppercase $field.Name}} = {{$field.Constructor}}("{{$field.Name}}", tbl.TableInfo)
+{{- define "function_constructor"}}
+{{- with $function := .}}
+// {{$function.Constructor}} creates an instance of the {{$function.Schema}}.{{$function.Name}} table
+func {{$function.Constructor}}({{range $i, $arg := $function.Arguments}}{{if not $i}}{{$arg.Name}} {{$arg.GoType}}{{else}}, {{$arg.Name}} {{$arg.GoType}}{{end}}) {{$function.StructName}} {
+	return {{$function.Constructor}}_({{range $i, $arg := $function.Arguments}}{{if not $i}}{{$arg.Name}}{{else}}, {{$arg.Name}}{{end}})
+}
+
+// {{$function.Constructor}}_ creates an instance of the {{$function.Schema}}.{{$function.Name}} table
+func {{$function.Constructor}}_({{range $i, $arg := $function.Arguments}}{{if not $i}}{{$arg.Name}} interface{}{{else}}, {{$arg.Name}} interface{}{{end}}) {{$function.StructName}} {
+	f := {{$function.StructName}}{FunctionInfo: qx.FunctionInfo{
+		Schema: "{{$function.Schema}}",
+		Name: "{{$function.Name}}",
+		Arguments: []interface{}{{"{"}}{{range $i, $arg := $function.Arguments}}{{if not $i}}{{$arg.Name}}{{else}}, {{$arg.Name}}{{end}}{{"}"}},
+		CustomSprintf: qy.CustomSprintf,
+	}
+	{{- range $_, $field := $function.Results}}
+	f.{{uppercase $field.Name}} = {{$field.Constructor}}("{{$field.Name}}", f.FunctionInfo)
 	{{- end}}
-	return tbl
+	return f
 }
 {{- end}}
 {{- end}}
 
-{{- define "table_as"}}
-{{- with $table := .}}
-func (tbl {{$table.StructName}}) As(alias string) {{$table.StructName}} {
-	tbl2 := {{$table.Constructor}}()
-	tbl2.TableInfo.Alias = alias
-	return tbl2
+{{- define "function_as"}}
+{{- with $function := .}}
+func (f {{$function.StructName}}) As(alias string) {{$function.StructName}} {
+	f2 := {{$function.Constructor}}()
+	f2.FunctionInfo.Alias = alias
+	return f2
 }
 {{- end}}
 {{- end}}`
@@ -281,11 +452,7 @@ func writeFunctionsToFile(functions []Function, directory, file, packageName str
 		return err
 	}
 	defer f.Close()
-	t, err := template.New("").Funcs(template.FuncMap{
-		"uppercase": func(s string) string {
-			return strings.TrimPrefix(strings.ToUpper(s), "_")
-		},
-	}).Parse(qygenfunctionTemplate)
+	t, err := template.New("").Funcs(template.FuncMap{"uppercase": strings.ToUpper}).Parse(qygenfunctionTemplate)
 	if err != nil {
 		return err
 	}
@@ -294,7 +461,7 @@ func writeFunctionsToFile(functions []Function, directory, file, packageName str
 		Imports:     Imports,
 		Functions:   functions,
 	}
-	err = t.Execute(f, data)
+	err = t.Execute(os.Stdout, data)
 	if err != nil {
 		return err
 	}
@@ -423,135 +590,6 @@ func (f Function) String() string {
 }
 
 /* Type classification functions */
-
-func extractNameAndType(rawField string) Field {
-	var field Field
-	field.RawField = rawField
-	if matches := regexp.
-		MustCompile(`boolean` +
-			`(\[\])?` +
-			`$`).
-		FindStringSubmatch(rawField); len(matches) == 2 {
-		// fmt.Println(rawField, matches)
-		// Boolean
-		field.Name = strings.TrimSpace(rawField[:len(matches[0])-2])
-		if matches[1] == "[]" {
-			field.FieldType = FieldTypeArray
-			field.GoType = GoTypeBoolSlice
-			field.Constructor = FieldConstructorArray
-		} else {
-			field.FieldType = FieldTypeBoolean
-			field.GoType = GoTypeBool
-			field.Constructor = FieldConstructorBoolean
-		}
-
-	} else if matches := regexp.
-		MustCompile(`json` + `(?:b)?` +
-			`(\[\])?` +
-			`$`).
-		FindStringSubmatch(rawField); len(matches) == 2 {
-		// fmt.Println(rawField, matches)
-		// JSON
-		field.Name = strings.TrimSpace(rawField[:len(matches[0])-2])
-		if matches[1] == "[]" {
-			field.FieldType = FieldTypeArray
-			field.GoType = GoTypeInterface
-			field.Constructor = FieldConstructorArray
-		} else {
-			field.FieldType = FieldTypeJSON
-			field.GoType = GoTypeInterface
-			field.Constructor = FieldConstructorJSON
-		}
-
-	} else if matches := regexp.
-		MustCompile(`(?:` + `smallint` +
-			`|` + `integer` +
-			`|` + `bigint` +
-			`|` + `smallserial` +
-			`|` + `serial` +
-			`|` + `bigserial` + `)` +
-			`(\[\])?` +
-			`$`).
-		FindStringSubmatch(rawField); len(matches) == 2 {
-		// fmt.Println(rawField, matches)
-		// Integer
-		field.Name = strings.TrimSpace(rawField[:len(rawField)-len(matches[0])])
-		if matches[1] == "[]" {
-			field.FieldType = FieldTypeArray
-			field.GoType = GoTypeIntSlice
-			field.Constructor = FieldConstructorArray
-		} else {
-			field.FieldType = FieldTypeNumber
-			field.GoType = GoTypeInt
-			field.Constructor = FieldConstructorNumber
-		}
-
-	} else if matches := regexp.
-		MustCompile(`(?:` + `decimal` +
-			`|` + `numeric` +
-			`|` + `real` +
-			`|` + `double precision` + `)` +
-			`(\[\])?` +
-			`$`).
-		FindStringSubmatch(rawField); len(matches) == 2 {
-		// fmt.Println(rawField, matches)
-		// Float
-		field.Name = strings.TrimSpace(rawField[:len(rawField)-len(matches[0])])
-		if matches[1] == "[]" {
-			field.FieldType = FieldTypeArray
-			field.GoType = GoTypeFloat64Slice
-			field.Constructor = FieldConstructorArray
-		} else {
-			field.FieldType = FieldTypeNumber
-			field.GoType = GoTypeFloat64
-			field.Constructor = FieldConstructorNumber
-		}
-
-	} else if matches := regexp.
-		MustCompile(`(?:` + `text` +
-			`|` + `char` + `(?:\(\d+\))?` +
-			`|` + `character` + `(?:\(\d+\))?` +
-			`|` + `varchar` + `(?:\(\d+\))?` +
-			`|` + `character varying` + `(?:\(\d+\))?` + `)` +
-			`(\[\])?` +
-			`$`).
-		FindStringSubmatch(rawField); len(matches) == 2 {
-		// fmt.Println(rawField, matches)
-		// String
-		field.Name = strings.TrimSpace(rawField[:len(rawField)-len(matches[0])])
-		if matches[1] == "[]" {
-			field.FieldType = FieldTypeArray
-			field.GoType = GoTypeStringSlice
-			field.Constructor = FieldConstructorArray
-		} else {
-			field.FieldType = FieldTypeString
-			field.GoType = GoTypeString
-			field.Constructor = FieldConstructorString
-		}
-
-	} else if matches := regexp.
-		MustCompile(`(?:` + `date` +
-			`|` + `(?:time|timestamp)` +
-			`(?: \(\d+\))?` +
-			`(?: without time zone| with time zone)?` + `)` +
-			`(\[\])?` +
-			`$`).
-		FindStringSubmatch(rawField); len(matches) == 2 {
-		// fmt.Println(rawField, matches)
-		// Time
-		field.Name = strings.TrimSpace(rawField[:len(rawField)-len(matches[0])])
-		if matches[1] == "[]" {
-			field.FieldType = FieldTypeArray
-			field.GoType = GoTypeTimeSlice
-			field.Constructor = FieldConstructorArray
-		} else {
-			field.FieldType = FieldTypeTime
-			field.GoType = GoTypeTime
-			field.Constructor = FieldConstructorTime
-		}
-	}
-	return field
-}
 
 func isString(rawtype string) bool {
 	// https://www.postgresql.org/docs/current/datatype-character.html
