@@ -7,12 +7,6 @@ type FunctionInfo struct {
 	Name      string
 	Alias     string
 	Arguments []interface{}
-
-	// Each dialect-specific qy package (postgres, mysql, sqlite3) is expected
-	// to provide their dialect-specific CustomSprintf function to FunctionInfo.
-	// If none is provided, it will fall back on using the the defaultSprintf
-	// function in this package.
-	CustomSprintf func(format string, values []interface{}, excludeTableQualifiers []string) (string, []interface{})
 }
 
 // ToSQL marshals a FunctionInfo into an SQL query.
@@ -34,11 +28,7 @@ func (f *FunctionInfo) ToSQLExclude(excludeTableQualifiers []string) (string, []
 	default:
 		query = schema + f.Name + "(?" + strings.Repeat(", ?", len(f.Arguments)-1) + ")"
 	}
-	if f.CustomSprintf != nil {
-		query, args = defaultSprintf(query, f.Arguments, excludeTableQualifiers)
-	} else {
-		query, args = defaultSprintf(query, f.Arguments, excludeTableQualifiers)
-	}
+	query, args = defaultSprintf(query, f.Arguments, excludeTableQualifiers)
 	return query, args
 }
 

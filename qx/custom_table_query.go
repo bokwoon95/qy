@@ -7,23 +7,11 @@ type CustomTable struct {
 	Alias  string
 	Format string
 	Values []interface{}
-
-	// Each dialect-specific qy package (postgres, mysql, sqlite3) is expected
-	// to provide their dialect-specific CustomSprintf function to CustomTable.
-	// If none is provided, it will fall back on using the the defaultSprintf
-	// function in this package.
-	CustomSprintf func(format string, values []interface{}, excludeTableQualifiers []string) (string, []interface{})
 }
 
 // ToSQL marshals a CustomTable into an SQL query.
 func (tbl CustomTable) ToSQL() (string, []interface{}) {
-	var query string
-	var args []interface{}
-	if tbl.CustomSprintf != nil {
-		query, args = defaultSprintf(tbl.Format, tbl.Values, nil)
-	} else {
-		query, args = defaultSprintf(tbl.Format, tbl.Values, nil)
-	}
+	query, args := defaultSprintf(tbl.Format, tbl.Values, nil)
 	return query, args
 }
 
@@ -62,23 +50,11 @@ type CustomQuery struct {
 	Alias  string
 	Format string
 	Values []interface{}
-
-	// Each dialect-specific qy package (postgres, mysql, sqlite3) is expected
-	// to provide their dialect-specific CustomSprintf function to CustomQuery.
-	// If none is provided, it will fall back on using the the defaultSprintf
-	// function in this package.
-	CustomSprintf func(format string, values []interface{}, excludeTableQualifiers []string) (string, []interface{})
 }
 
 // ToSQL marshals a CustomQuery into an SQL query.
 func (q CustomQuery) ToSQL() (string, []interface{}) {
-	var query string
-	var args []interface{}
-	if q.CustomSprintf != nil {
-		query, args = defaultSprintf(q.Format, q.Values, nil)
-	} else {
-		query, args = defaultSprintf(q.Format, q.Values, nil)
-	}
+	query, args := defaultSprintf(q.Format, q.Values, nil)
 	if !q.Nested && q.Postgres {
 		query = MySQLToPostgresPlaceholders(query)
 	}

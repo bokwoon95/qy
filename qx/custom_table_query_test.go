@@ -3,11 +3,7 @@ package qx
 import "testing"
 
 func TestCustomTable_GameTheNumbers(t *testing.T) {
-	CustomTable{
-		CustomSprintf: func(string, []interface{}, []string) (string, []interface{}) {
-			return "", nil
-		},
-	}.ToSQL()
+	CustomTable{}.ToSQL()
 	tbl := CustomTable{}
 	tbl.ToSQL()
 	tbl.As("tbl")
@@ -16,12 +12,8 @@ func TestCustomTable_GameTheNumbers(t *testing.T) {
 }
 
 func TestCustomQuery_GameTheNumbers(t *testing.T) {
-	CustomQuery{
-		CustomSprintf: func(string, []interface{}, []string) (string, []interface{}) {
-			return "", nil
-		},
-	}.ToSQL()
-	q := CustomQuery{Postgres:true}
+	CustomQuery{}.ToSQL()
+	q := CustomQuery{Postgres: true}
 	q.ToSQL()
 	q.As("q")
 	q.GetAlias()

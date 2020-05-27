@@ -9,24 +9,12 @@ type CustomField struct {
 	Values       []interface{}
 	IsDesc       *bool
 	IsNullsFirst *bool
-
-	// Each dialect-specific qy package (postgres, mysql, sqlite3) is expected to
-	// provide their dialect-specific CustomSprintf function to CustomField. If
-	// none is provided, it will fall back on using the the defaultSprintf function
-	// in this package.
-	CustomSprintf func(format string, values []interface{}, excludeTableQualifiers []string) (string, []interface{})
 }
 
 // ToSQL marshals a CustomField into an SQL query and args as described in the
 // CustomField struct description.
 func (f CustomField) ToSQLExclude(excludeTableQualifiers []string) (string, []interface{}) {
-	var query string
-	var args []interface{}
-	if f.CustomSprintf != nil {
-		query, args = defaultSprintf(f.Format, f.Values, excludeTableQualifiers)
-	} else {
-		query, args = defaultSprintf(f.Format, f.Values, excludeTableQualifiers)
-	}
+	query, args := defaultSprintf(f.Format, f.Values, excludeTableQualifiers)
 	if query == "" {
 		return "", nil
 	}

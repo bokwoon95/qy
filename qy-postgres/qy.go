@@ -2,7 +2,6 @@ package qy
 
 import (
 	"database/sql"
-	"strings"
 	"time"
 
 	"github.com/bokwoon95/qy/qx"
@@ -92,155 +91,29 @@ func (r *QyRow) ScanArray(array interface{}, f qx.Field) {
 
 func Fieldf(format string, values ...interface{}) qx.CustomField {
 	return qx.CustomField{
-		Format:        format,
-		Values:        values,
-		CustomSprintf: CustomSprintf,
+		Format: format,
+		Values: values,
 	}
 }
 
 func Predicatef(format string, values ...interface{}) qx.CustomPredicate {
 	return qx.CustomPredicate{
-		Format:        format,
-		Values:        values,
-		CustomSprintf: CustomSprintf,
+		Format: format,
+		Values: values,
 	}
 }
 
 func Tablef(format string, values ...interface{}) qx.CustomTable {
 	return qx.CustomTable{
-		Format:        format,
-		Values:        values,
-		CustomSprintf: CustomSprintf,
+		Format: format,
+		Values: values,
 	}
 }
 
 func Queryf(format string, values ...interface{}) qx.CustomQuery {
 	return qx.CustomQuery{
-		Postgres:      true,
-		Format:        format,
-		Values:        values,
-		CustomSprintf: CustomSprintf,
+		Postgres: true,
+		Format:   format,
+		Values:   values,
 	}
-}
-
-// CustomSprintf ...
-func CustomSprintf(format string, values []interface{}, excludeTableQualifiers []string) (string, []interface{}) {
-	var allQueries []string
-	var allArgs []interface{}
-	for i := range values {
-		var query string
-		var args []interface{}
-		switch value := values[i].(type) {
-		case nil:
-			query, args = "NULL", nil
-		case qx.Field:
-			query, args = value.ToSQLExclude(excludeTableQualifiers)
-		case qx.Fields:
-			buf := &strings.Builder{}
-			value.WriteSQL(buf, &args, "", "", excludeTableQualifiers)
-			query = buf.String()
-		case qx.Predicate:
-			query, args = value.ToSQLExclude(excludeTableQualifiers)
-		case qx.Table:
-			query, args = value.ToSQL()
-		case qx.FieldValueSet:
-			sets := qx.FieldValueSets{value}
-			buf := &strings.Builder{}
-			sets.WriteSQL(buf, &args, "", "", excludeTableQualifiers)
-			query = buf.String()
-		case qx.FieldValueSets:
-			buf := &strings.Builder{}
-			value.WriteSQL(buf, &args, "", "", excludeTableQualifiers)
-			query = buf.String()
-		case qx.ValuesList:
-			buf := &strings.Builder{}
-			value.WriteSQL(buf, &args, "", "")
-			query = buf.String()
-		// lmao tfw no generics
-		case []int:
-			if len(value) == 0 {
-				return "", nil
-			}
-			query = "?" + strings.Repeat(", ?", len(value)-1)
-			args = make([]interface{}, len(value))
-			for i := range value {
-				args[i] = value[i]
-			}
-		case []int64:
-			if len(value) == 0 {
-				return "", nil
-			}
-			query = "?" + strings.Repeat(", ?", len(value)-1)
-			args = make([]interface{}, len(value))
-			for i := range value {
-				args[i] = value[i]
-			}
-		case []float64:
-			if len(value) == 0 {
-				return "", nil
-			}
-			query = "?" + strings.Repeat(", ?", len(value)-1)
-			args = make([]interface{}, len(value))
-			for i := range value {
-				args[i] = value[i]
-			}
-		case []string:
-			if len(value) == 0 {
-				return "", nil
-			}
-			query = "?" + strings.Repeat(", ?", len(value)-1)
-			args = make([]interface{}, len(value))
-			for i := range value {
-				args[i] = value[i]
-			}
-		case []bool:
-			if len(value) == 0 {
-				return "", nil
-			}
-			query = "?" + strings.Repeat(", ?", len(value)-1)
-			args = make([]interface{}, len(value))
-			for i := range value {
-				args[i] = value[i]
-			}
-		case []interface{}:
-			if len(value) == 0 {
-				return "", nil
-			}
-			args = make([]interface{}, len(value))
-			query = "?" + strings.Repeat(", ?", len(value)-1)
-			for i := range value {
-				args[i] = value[i]
-			}
-		case int, int8, int16, uint8, uint16:
-			query, args = "?::INT", []interface{}{value}
-		case uint32, int64, uint64:
-			query, args = "?::BIGINT", []interface{}{value}
-		case float32, float64:
-			query, args = "?::FLOAT", []interface{}{value}
-		case string:
-			query, args = "?::TEXT", []interface{}{value}
-		case time.Time:
-			query, args = "?::TIMESTAMPTZ", []interface{}{value}
-		case bool:
-			query, args = "?::BOOLEAN", []interface{}{value}
-		default:
-			query, args = "?", []interface{}{value}
-		}
-		allQueries = append(allQueries, query)
-		allArgs = append(allArgs, args...)
-	}
-	buf := &strings.Builder{}
-	for i := strings.Index(format, "?"); i >= 0 && len(allQueries) > 0; i = strings.Index(format, "?") {
-		buf.WriteString(format[:i])
-		if len(format[i:]) > 1 && format[i:i+2] == "??" {
-			buf.WriteString("?")
-			format = format[i+2:]
-			continue
-		}
-		buf.WriteString(allQueries[0])
-		format = format[i+1:]
-		allQueries = allQueries[1:]
-	}
-	buf.WriteString(format)
-	return buf.String(), allArgs
 }

@@ -63,9 +63,6 @@ func TestCustomField_GameTheNumbers(t *testing.T) {
 	lipsum := "lorem ipsum dolor sit amet"
 	field := CustomField{
 		Format: lipsum,
-		CustomSprintf: func(string, []interface{}, []string) (string, []interface{}) {
-			return lipsum, nil
-		},
 	}.As("lipsum")
 	query, _ := field.ToSQLExclude(nil)
 	is.Equal(lipsum, query)
