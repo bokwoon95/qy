@@ -3,7 +3,10 @@ package qy
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"log"
+	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/bokwoon95/qy/qx"
@@ -248,7 +251,15 @@ func (q UpdateQuery) Exec(db qx.Queryer) (err error) {
 		rowcount++
 		err = r.QxRow.Rows.Scan(r.QxRow.Dest...)
 		if err != nil {
-			return err
+			buf := &strings.Builder{}
+			for i := range r.QxRow.Dest {
+				query, args := r.QxRow.Fields[i].ToSQLExclude(nil)
+				buf.WriteString("\n" +
+					strconv.Itoa(i) + ") " +
+					qx.MySQLInterpolateSQL(query, args...) + " => " +
+					reflect.TypeOf(r.QxRow.Dest[i]).String())
+			}
+			return fmt.Errorf("Please check if your mapper function is correct:%s\n%w", buf.String(), err)
 		}
 		r.QxRow.Index = 0 // index must always be reset back to 0 before mapper is called
 		q.Mapper(r)

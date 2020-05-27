@@ -19,7 +19,7 @@ func (r *QxRow) ScanInto(dest interface{}, field Field) {
 	nothing := &sql.RawBytes{}
 	if r.Rows == nil {
 		r.Fields = append(r.Fields, field)
-		r.Dest = append(r.Dest, nothing)
+		r.Dest = append(r.Dest, dest)
 		return
 	}
 	if len(r.TmpDest) != len(r.Dest) {
