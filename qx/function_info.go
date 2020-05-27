@@ -28,7 +28,7 @@ func (f *FunctionInfo) ToSQLExclude(excludeTableQualifiers []string) (string, []
 	default:
 		query = schema + f.Name + "(?" + strings.Repeat(", ?", len(f.Arguments)-1) + ")"
 	}
-	query, args = defaultSprintf(query, f.Arguments, excludeTableQualifiers)
+	query, args = FormatPreprocessor(query, f.Arguments, excludeTableQualifiers)
 	return query, args
 }
 

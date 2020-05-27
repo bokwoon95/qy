@@ -14,7 +14,7 @@ type CustomField struct {
 // ToSQL marshals a CustomField into an SQL query and args as described in the
 // CustomField struct description.
 func (f CustomField) ToSQLExclude(excludeTableQualifiers []string) (string, []interface{}) {
-	query, args := defaultSprintf(f.Format, f.Values, excludeTableQualifiers)
+	query, args := FormatPreprocessor(f.Format, f.Values, excludeTableQualifiers)
 	if query == "" {
 		return "", nil
 	}

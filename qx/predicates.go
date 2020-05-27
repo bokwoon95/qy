@@ -10,23 +10,11 @@ import (
 type CustomPredicate struct {
 	Format string
 	Values []interface{}
-
-	// Each dialect-specific qy package (postgres, mysql, sqlite3) is expected
-	// to provide their dialect-specific CustomSprintf function to CustomPredicate.
-	// If none is provided, it will fall back on using the the defaultSprintf
-	// function in this package.
-	CustomSprintf func(format string, values []interface{}, excludeTableQualifiers []string) (string, []interface{})
 }
 
 // ToSQL marshals a CustomPredicate into an SQL query.
 func (p CustomPredicate) ToSQLExclude(excludeTableQualifiers []string) (string, []interface{}) {
-	var query string
-	var args []interface{}
-	if p.CustomSprintf != nil {
-		query, args = p.CustomSprintf(p.Format, p.Values, excludeTableQualifiers)
-	} else {
-		query, args = defaultSprintf(p.Format, p.Values, excludeTableQualifiers)
-	}
+	query, args := FormatPreprocessor(p.Format, p.Values, excludeTableQualifiers)
 	return query, args
 }
 

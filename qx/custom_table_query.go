@@ -11,7 +11,7 @@ type CustomTable struct {
 
 // ToSQL marshals a CustomTable into an SQL query.
 func (tbl CustomTable) ToSQL() (string, []interface{}) {
-	query, args := defaultSprintf(tbl.Format, tbl.Values, nil)
+	query, args := FormatPreprocessor(tbl.Format, tbl.Values, nil)
 	return query, args
 }
 
@@ -54,7 +54,7 @@ type CustomQuery struct {
 
 // ToSQL marshals a CustomQuery into an SQL query.
 func (q CustomQuery) ToSQL() (string, []interface{}) {
-	query, args := defaultSprintf(q.Format, q.Values, nil)
+	query, args := FormatPreprocessor(q.Format, q.Values, nil)
 	if !q.Nested && q.Postgres {
 		query = MySQLToPostgresPlaceholders(query)
 	}

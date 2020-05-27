@@ -11,7 +11,7 @@ import (
 )
 
 // TODO: rewrite this documentation
-// defaultSprintf operates similar to fmt.Sprintf except it only recognizes ? question
+// FormatPreprocessor operates similar to fmt.Sprintf except it only recognizes ? question
 // mark as a format specifier. It replaces each ? in the format string with the
 // corresponding string representation of value in the values slice. Most types
 // in the package are recognized: Table, Predicate, Field, Fields,
@@ -21,7 +21,7 @@ import (
 // Sprintf will simply treat it as a literal argument and add a "?" to the
 // format string and the literal value to the output args. To escape a question
 // mark ?, use two question marks ?? instead.
-func defaultSprintf(format string, values []interface{}, excludeTableQualifiers []string) (string, []interface{}) {
+func FormatPreprocessor(format string, values []interface{}, excludeTableQualifiers []string) (string, []interface{}) {
 	var allQueries []string
 	var allArgs []interface{}
 	for i := range values {
