@@ -6,20 +6,32 @@ import (
 )
 
 type QxRow struct {
-	Active bool
-	Index  int
-	Fields []Field
-	Dest   []interface{}
+	Rows    *sql.Rows
+	Index   int
+	Fields  []Field
+	Dest    []interface{}
+	TmpDest []interface{}
 }
 
 /* custom */
 
 func (r *QxRow) ScanInto(dest interface{}, field Field) {
-	if !r.Active {
+	nothing := &sql.RawBytes{}
+	if r.Rows == nil {
 		r.Fields = append(r.Fields, field)
-		r.Dest = append(r.Dest, dest)
+		r.Dest = append(r.Dest, nothing)
 		return
 	}
+	if len(r.TmpDest) != len(r.Dest) {
+		r.TmpDest = make([]interface{}, len(r.Dest))
+		for i := range r.TmpDest {
+			r.TmpDest[i] = nothing
+		}
+	}
+	r.TmpDest[r.Index] = dest
+	r.Rows.Scan(r.TmpDest...)
+	r.TmpDest[r.Index] = nothing
+	r.Index++
 }
 
 /* bool */
@@ -45,7 +57,7 @@ func (r *QxRow) NullBool(field BooleanField) sql.NullBool {
 }
 
 func (r *QxRow) NullBool_(field Field) sql.NullBool {
-	if !r.Active {
+	if r.Rows == nil {
 		r.Fields = append(r.Fields, field)
 		r.Dest = append(r.Dest, &sql.NullBool{})
 		return sql.NullBool{}
@@ -82,7 +94,7 @@ func (r *QxRow) NullFloat64(field NumberField) sql.NullFloat64 {
 }
 
 func (r *QxRow) NullFloat64_(field Field) sql.NullFloat64 {
-	if !r.Active {
+	if r.Rows == nil {
 		r.Fields = append(r.Fields, field)
 		r.Dest = append(r.Dest, &sql.NullFloat64{})
 		return sql.NullFloat64{}
@@ -137,7 +149,7 @@ func (r *QxRow) NullInt32(field NumberField) sql.NullInt32 {
 }
 
 func (r *QxRow) NullInt32_(field Field) sql.NullInt32 {
-	if !r.Active {
+	if r.Rows == nil {
 		r.Fields = append(r.Fields, field)
 		r.Dest = append(r.Dest, &sql.NullInt32{})
 		return sql.NullInt32{}
@@ -174,7 +186,7 @@ func (r *QxRow) NullInt64(field NumberField) sql.NullInt64 {
 }
 
 func (r *QxRow) NullInt64_(field Field) sql.NullInt64 {
-	if !r.Active {
+	if r.Rows == nil {
 		r.Fields = append(r.Fields, field)
 		r.Dest = append(r.Dest, &sql.NullInt64{})
 		return sql.NullInt64{}
@@ -211,7 +223,7 @@ func (r *QxRow) NullString(field StringField) sql.NullString {
 }
 
 func (r *QxRow) NullString_(field Field) sql.NullString {
-	if !r.Active {
+	if r.Rows == nil {
 		r.Fields = append(r.Fields, field)
 		r.Dest = append(r.Dest, &sql.NullString{})
 		return sql.NullString{}
@@ -248,7 +260,7 @@ func (r *QxRow) NullTime(field TimeField) sql.NullTime {
 }
 
 func (r *QxRow) NullTime_(field Field) sql.NullTime {
-	if !r.Active {
+	if r.Rows == nil {
 		r.Fields = append(r.Fields, field)
 		r.Dest = append(r.Dest, &sql.NullTime{})
 		return sql.NullTime{}

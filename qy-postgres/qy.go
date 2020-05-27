@@ -72,10 +72,22 @@ type QyRow struct {
 // scans a postgres array into that slice. Only []bool, []float64, []int64 or
 // []string slices are supported.
 func (r *QyRow) ScanArray(array interface{}, f qx.Field) {
-	if !r.QxRow.Active {
+	nothing := &sql.RawBytes{}
+	if r.QxRow.Rows == nil {
 		r.QxRow.Fields = append(r.QxRow.Fields, f)
-		r.QxRow.Dest = append(r.QxRow.Dest, pq.Array(array))
+		r.QxRow.Dest = append(r.QxRow.Dest, nothing)
+		return
 	}
+	if len(r.QxRow.TmpDest) != len(r.QxRow.Dest) {
+		r.QxRow.TmpDest = make([]interface{}, len(r.QxRow.Dest))
+		for i := range r.QxRow.TmpDest {
+			r.QxRow.TmpDest[i] = nothing
+		}
+	}
+	r.TmpDest[r.Index] = pq.Array(array)
+	r.Rows.Scan(r.TmpDest...)
+	r.TmpDest[r.Index] = nothing
+	r.Index++
 }
 
 func Fieldf(format string, values ...interface{}) qx.CustomField {

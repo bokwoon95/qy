@@ -253,22 +253,21 @@ func (q InsertQuery) Exec(db qx.Queryer) (err error) {
 		q.Mapper(r) // call the mapper once on the *Row to get all the selected that the user is interested in
 	}
 	q.ReturningFields = r.QxRow.Fields // then, transfer the selected collected by *Row to the InsertQuery
-	r.QxRow.Active = true              // mark Row as active i.e.
 	q.LogSkip += 1
 	query, args := q.ToSQL()
-	rows, err := db.Query(query, args...)
+	r.QxRow.Rows, err = db.Query(query, args...)
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+	defer r.QxRow.Rows.Close()
 	var rowcount int
 	if len(q.ReturningFields) == 0 {
 		// if user didn't specify any fields to return, don't bother scanning anything and return early
 		return nil
 	}
-	for rows.Next() {
+	for r.QxRow.Rows.Next() {
 		rowcount++
-		err = rows.Scan(r.QxRow.Dest...)
+		err = r.QxRow.Rows.Scan(r.QxRow.Dest...)
 		if err != nil {
 			return err
 		}
@@ -282,7 +281,7 @@ func (q InsertQuery) Exec(db qx.Queryer) (err error) {
 	if rowcount == 0 && q.Accumulator == nil {
 		return sql.ErrNoRows
 	}
-	return rows.Err()
+	return r.QxRow.Rows.Err()
 }
 
 func (q InsertQuery) ExecWithLog(db qx.Queryer, log qx.Logger) error {

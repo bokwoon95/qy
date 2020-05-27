@@ -300,26 +300,25 @@ func (q SelectQuery) Exec(db qx.Queryer) (err error) {
 	r := &QyRow{QxRow: &qx.QxRow{}}
 	q.Mapper(r)                     // call the mapper once on the *Row to get all the selected that the user is interested in
 	q.SelectFields = r.QxRow.Fields // then, transfer the selected collected by *Row to the SelectQuery
-	r.QxRow.Active = true           // mark Row as active i.e.
 	noFieldsSpecified := len(r.QxRow.Fields) == 0
 	if noFieldsSpecified {
 		q.SelectFields = append(q.SelectFields, Fieldf("1"))
 	}
 	q.LogSkip += 1
 	query, args := q.ToSQL()
-	rows, err := db.Query(query, args...)
+	r.QxRow.Rows, err = db.Query(query, args...)
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+	defer r.Rows.Close()
 	var rowcount int
 	if noFieldsSpecified {
 		// if user didn't specify any selected, don't bother scanning anything and return early
 		return nil
 	}
-	for rows.Next() {
+	for r.QxRow.Rows.Next() {
 		rowcount++
-		err = rows.Scan(r.QxRow.Dest...)
+		err = r.QxRow.Rows.Scan(r.QxRow.Dest...)
 		if err != nil {
 			return err
 		}
@@ -333,11 +332,10 @@ func (q SelectQuery) Exec(db qx.Queryer) (err error) {
 	if rowcount == 0 && q.Accumulator == nil {
 		return sql.ErrNoRows
 	}
-	if e := rows.Close(); e != nil {
-		// https://github.blog/2020-05-20-three-bugs-in-the-go-mysql-driver/
+	if e := r.QxRow.Rows.Close(); e != nil {
 		return e
 	}
-	return rows.Err()
+	return r.QxRow.Rows.Err()
 }
 
 func (q SelectQuery) ExecWithLog(db qx.Queryer, log qx.Logger) error {
