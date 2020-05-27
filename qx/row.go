@@ -2,6 +2,8 @@ package qx
 
 import (
 	"database/sql"
+	"fmt"
+	"runtime"
 	"time"
 )
 
@@ -16,7 +18,7 @@ type QxRow struct {
 /* custom */
 
 func (r *QxRow) ScanInto(dest interface{}, field Field) {
-	nothing := &sql.RawBytes{}
+	var nothing interface{}
 	if r.Rows == nil {
 		r.Fields = append(r.Fields, field)
 		r.Dest = append(r.Dest, dest)
@@ -25,12 +27,16 @@ func (r *QxRow) ScanInto(dest interface{}, field Field) {
 	if len(r.TmpDest) != len(r.Dest) {
 		r.TmpDest = make([]interface{}, len(r.Dest))
 		for i := range r.TmpDest {
-			r.TmpDest[i] = nothing
+			r.TmpDest[i] = &nothing
 		}
 	}
 	r.TmpDest[r.Index] = dest
-	r.Rows.Scan(r.TmpDest...)
-	r.TmpDest[r.Index] = nothing
+	err := r.Rows.Scan(r.TmpDest...)
+	if err != nil {
+		_, sourcefile, linenbr, _ := runtime.Caller(1)
+		panic(fmt.Errorf("row.ScanInto failed on %s:%d: %w", sourcefile, linenbr, err))
+	}
+	r.TmpDest[r.Index] = &nothing
 	r.Index++
 }
 
@@ -126,42 +132,42 @@ func (r *QxRow) IntValid_(field Field) bool {
 	return r.NullInt64_(field).Valid
 }
 
-/* int32 */
-
-func (r *QxRow) Int32(field NumberField) int32 {
-	return r.NullInt32_(field).Int32
-}
-
-func (r *QxRow) Int32_(field Field) int32 {
-	return r.NullInt32_(field).Int32
-}
-
-func (r *QxRow) Int32Valid(field NumberField) bool {
-	return r.NullInt32_(field).Valid
-}
-
-func (r *QxRow) Int32Valid_(field Field) bool {
-	return r.NullInt32_(field).Valid
-}
-
-func (r *QxRow) NullInt32(field NumberField) sql.NullInt32 {
-	return r.NullInt32_(field)
-}
-
-func (r *QxRow) NullInt32_(field Field) sql.NullInt32 {
-	if r.Rows == nil {
-		r.Fields = append(r.Fields, field)
-		r.Dest = append(r.Dest, &sql.NullInt32{})
-		return sql.NullInt32{}
-	}
-	switch val := r.Dest[r.Index].(type) {
-	case *sql.NullInt32:
-		r.Index++
-		return *val
-	default:
-		panic("type mismatch")
-	}
-}
+// /* int32 */
+//
+// func (r *QxRow) Int32(field NumberField) int32 {
+// 	return r.NullInt32_(field).Int32
+// }
+//
+// func (r *QxRow) Int32_(field Field) int32 {
+// 	return r.NullInt32_(field).Int32
+// }
+//
+// func (r *QxRow) Int32Valid(field NumberField) bool {
+// 	return r.NullInt32_(field).Valid
+// }
+//
+// func (r *QxRow) Int32Valid_(field Field) bool {
+// 	return r.NullInt32_(field).Valid
+// }
+//
+// func (r *QxRow) NullInt32(field NumberField) sql.NullInt32 {
+// 	return r.NullInt32_(field)
+// }
+//
+// func (r *QxRow) NullInt32_(field Field) sql.NullInt32 {
+// 	if r.Rows == nil {
+// 		r.Fields = append(r.Fields, field)
+// 		r.Dest = append(r.Dest, &sql.NullInt32{})
+// 		return sql.NullInt32{}
+// 	}
+// 	switch val := r.Dest[r.Index].(type) {
+// 	case *sql.NullInt32:
+// 		r.Index++
+// 		return *val
+// 	default:
+// 		panic("type mismatch")
+// 	}
+// }
 
 /* int64 */
 

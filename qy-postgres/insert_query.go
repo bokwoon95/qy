@@ -264,8 +264,8 @@ func (q InsertQuery) Exec(db qx.Queryer) (err error) {
 	}
 	defer r.QxRow.Rows.Close()
 	var rowcount int
-	if len(q.ReturningFields) == 0 {
-		// if user didn't specify any fields to return, don't bother scanning anything and return early
+	if len(r.QxRow.Dest) == 0 {
+		// If there's nothing to scan into, return early
 		return nil
 	}
 	for r.QxRow.Rows.Next() {

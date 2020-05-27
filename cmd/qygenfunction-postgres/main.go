@@ -415,7 +415,7 @@ type {{$function.StructName | uppercase}} struct {
 
 {{- define "function_constructor"}}
 {{- with $function := .}}
-// {{$function.Constructor | trimUnderscorePrefix}} creates an instance of the {{$function.Schema}}.{{$function.Name}} table
+// {{$function.Constructor | trimUnderscorePrefix}} creates an instance of the {{$function.Schema}}.{{$function.Name}} function
 func {{$function.Constructor | trimUnderscorePrefix}}(
 	{{- range $i, $arg := $function.Arguments}}
 	{{$arg.Name}} {{$arg.GoType}},
@@ -424,10 +424,10 @@ func {{$function.Constructor | trimUnderscorePrefix}}(
 	return {{$function.Constructor}}_({{range $i, $arg := $function.Arguments}}{{if not $i}}{{$arg.Name}}{{else}}, {{$arg.Name}}{{end}}{{end}})
 }
 
-// {{$function.Constructor | trimUnderscorePrefix}}_ creates an instance of the {{$function.Schema}}.{{$function.Name}} table
+// {{$function.Constructor | trimUnderscorePrefix}}_ creates an instance of the {{$function.Schema}}.{{$function.Name}} function
 func {{$function.Constructor | trimUnderscorePrefix}}_(
 	{{- range $i, $arg := $function.Arguments}}
-	{{$arg.Name}} {{$arg.GoType}},
+	{{$arg.Name}} interface{},
 	{{- end}}
 	) {{$function.StructName}} {
 	f := {{$function.StructName}}{FunctionInfo: &qx.FunctionInfo{

@@ -35,7 +35,7 @@ func (f *FunctionInfo) ToSQLExclude(excludeTableQualifiers []string) (string, []
 		query = schema + f.Name + "(?" + strings.Repeat(", ?", len(f.Arguments)-1) + ")"
 	}
 	if f.CustomSprintf != nil {
-		query, args = f.CustomSprintf(query, f.Arguments, excludeTableQualifiers)
+		query, args = defaultSprintf(query, f.Arguments, excludeTableQualifiers)
 	} else {
 		query, args = defaultSprintf(query, f.Arguments, excludeTableQualifiers)
 	}

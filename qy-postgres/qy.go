@@ -10,8 +10,8 @@ import (
 )
 
 type Row interface {
-	ScanArray(array interface{}, f qx.Field)
-	ScanInto(dest interface{}, f qx.Field)
+	ScanArray(array interface{}, field qx.Field)
+	ScanInto(dest interface{}, field qx.Field)
 	// bool
 	Bool(qx.BooleanField) bool
 	Bool_(qx.Field) bool
@@ -31,13 +31,13 @@ type Row interface {
 	Int_(qx.Field) int
 	IntValid(qx.NumberField) bool
 	IntValid_(qx.Field) bool
-	// int32
-	Int32(qx.NumberField) int32
-	Int32_(qx.Field) int32
-	Int32Valid(qx.NumberField) bool
-	Int32Valid_(qx.Field) bool
-	NullInt32(qx.NumberField) sql.NullInt32
-	NullInt32_(qx.Field) sql.NullInt32
+	// // int32
+	// Int32(qx.NumberField) int32
+	// Int32_(qx.Field) int32
+	// Int32Valid(qx.NumberField) bool
+	// Int32Valid_(qx.Field) bool
+	// NullInt32(qx.NumberField) sql.NullInt32
+	// NullInt32_(qx.Field) sql.NullInt32
 	// int64
 	Int64(qx.NumberField) int64
 	Int64_(qx.Field) int64

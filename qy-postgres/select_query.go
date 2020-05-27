@@ -297,15 +297,13 @@ func (q SelectQuery) Exec(db qx.Queryer) (err error) {
 			}
 		}
 	}()
-	if q.Mapper == nil {
-		return errors.New("you can't call Exec without a mapper")
-	}
 	r := &QyRow{QxRow: &qx.QxRow{}}
-	q.Mapper(r)                     // call the mapper once on the *Row to get all the selected that the user is interested in
-	q.SelectFields = r.QxRow.Fields // then, transfer the selected collected by *Row to the SelectQuery
-	noFieldsSpecified := len(r.QxRow.Fields) == 0
-	if noFieldsSpecified {
-		q.SelectFields = append(q.SelectFields, Fieldf("1"))
+	if q.Mapper != nil {
+		q.Mapper(r)                     // call the mapper once on the *Row to get all the selected that the user is interested in
+		q.SelectFields = r.QxRow.Fields // then, transfer the selected collected by *Row to the SelectQuery
+		if len(q.SelectFields) == 0 {
+			q.SelectFields = append(q.SelectFields, Fieldf("1"))
+		}
 	}
 	q.LogSkip += 1
 	query, args := q.ToSQL()
@@ -315,8 +313,8 @@ func (q SelectQuery) Exec(db qx.Queryer) (err error) {
 	}
 	defer r.Rows.Close()
 	var rowcount int
-	if noFieldsSpecified {
-		// if user didn't specify any selected, don't bother scanning anything and return early
+	if len(r.QxRow.Dest) == 0 {
+		// If there's nothing to scan into, return early
 		return nil
 	}
 	for r.QxRow.Rows.Next() {

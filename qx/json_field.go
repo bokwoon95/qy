@@ -1,6 +1,7 @@
 package qx
 
 import (
+	"database/sql/driver"
 	"encoding/json"
 )
 
@@ -87,7 +88,9 @@ func NewJSONField(name string, table Table) JSONField {
 // JSON returns a new JSONField representing a literal JSONable value. It
 // returns an error indicating if the value can be marshalled into JSON.
 func JSON(val interface{}) (JSONField, error) {
-	f := JSONField{value: val}
+	f := JSONField{
+		value: val,
+	}
 	_, err := json.Marshal(val)
 	if err != nil {
 		return f, err
@@ -102,6 +105,13 @@ func MustJSON(val interface{}) JSONField {
 		panic(err)
 	}
 	return f
+}
+
+// JSONValue returns a new JSONField representing a driver.Valuer value.
+func JSONValue(val driver.Valuer) JSONField {
+	return JSONField{
+		value: val,
+	}
 }
 
 // Set returns a FieldValueSet associating the JSONField to the value i.e.
@@ -120,6 +130,15 @@ func (f JSONField) SetJSON(value interface{}) FieldValueSet {
 	return FieldValueSet{
 		Field: f,
 		Value: MustJSON(value).value,
+	}
+}
+
+// Set returns a FieldValueSet associating the JSONField to the driver.Valuer
+// value i.e. 'SET field = value'.
+func (f JSONField) SetValue(value driver.Valuer) FieldValueSet {
+	return FieldValueSet{
+		Field: f,
+		Value: value,
 	}
 }
 

@@ -23,7 +23,7 @@ func (f CustomField) ToSQLExclude(excludeTableQualifiers []string) (string, []in
 	var query string
 	var args []interface{}
 	if f.CustomSprintf != nil {
-		query, args = f.CustomSprintf(f.Format, f.Values, excludeTableQualifiers)
+		query, args = defaultSprintf(f.Format, f.Values, excludeTableQualifiers)
 	} else {
 		query, args = defaultSprintf(f.Format, f.Values, excludeTableQualifiers)
 	}

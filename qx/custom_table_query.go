@@ -20,7 +20,7 @@ func (tbl CustomTable) ToSQL() (string, []interface{}) {
 	var query string
 	var args []interface{}
 	if tbl.CustomSprintf != nil {
-		query, args = tbl.CustomSprintf(tbl.Format, tbl.Values, nil)
+		query, args = defaultSprintf(tbl.Format, tbl.Values, nil)
 	} else {
 		query, args = defaultSprintf(tbl.Format, tbl.Values, nil)
 	}
@@ -75,7 +75,7 @@ func (q CustomQuery) ToSQL() (string, []interface{}) {
 	var query string
 	var args []interface{}
 	if q.CustomSprintf != nil {
-		query, args = q.CustomSprintf(q.Format, q.Values, nil)
+		query, args = defaultSprintf(q.Format, q.Values, nil)
 	} else {
 		query, args = defaultSprintf(q.Format, q.Values, nil)
 	}
