@@ -307,11 +307,7 @@ func {{$table.Constructor}}() {{$table.StructName}} {
 {{- define "table_as"}}
 {{- with $table := .}}
 func (tbl {{$table.StructName}}) As(alias string) {{$table.StructName}} {
-	tbl.TableInfo = &qx.TableInfo{
-		Schema: tbl.TableInfo.Schema,
-		Name: tbl.TableInfo.Name,
-		Alias: alias,
-	}
+	tbl.TableInfo.Alias = alias
 	return tbl
 }
 {{- end}}
