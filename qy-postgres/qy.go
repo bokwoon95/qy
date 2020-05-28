@@ -179,7 +179,6 @@ func (qy Qy) SelectDistinctOn(distinctFields ...qx.Field) func(...qx.Field) Sele
 
 func (qy Qy) Selectx(mapper func(Row), accumulator func()) SelectQuery {
 	return SelectQuery{
-		SelectType:  qx.SelectTypeDistinctOn,
 		Mapper:      mapper,
 		Accumulator: accumulator,
 		Alias:       qx.RandomString(8),
@@ -191,7 +190,6 @@ func (qy Qy) Selectx(mapper func(Row), accumulator func()) SelectQuery {
 
 func (qy Qy) SelectRowx(mapper func(Row)) SelectQuery {
 	return SelectQuery{
-		SelectType: qx.SelectTypeDistinctOn,
 		Mapper:     mapper,
 		Alias:      qx.RandomString(8),
 		CTEs:       qy.CTEs,

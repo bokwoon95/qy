@@ -137,29 +137,51 @@ func NewSelectQuery() SelectQuery {
 }
 
 func From(table qx.Table) SelectQuery {
-	return NewSelectQuery().From(table)
+	return SelectQuery{
+		FromTable: table,
+		Alias:     qx.RandomString(8),
+	}
 }
 
 func Select(fields ...qx.Field) SelectQuery {
-	return NewSelectQuery().Select(fields...)
+	return SelectQuery{
+		SelectFields: fields,
+		Alias:        qx.RandomString(8),
+	}
 }
 
 func SelectDistinct(fields ...qx.Field) SelectQuery {
-	return NewSelectQuery().SelectDistinct(fields...)
+	return SelectQuery{
+		SelectType:   qx.SelectTypeDistinct,
+		SelectFields: fields,
+		Alias:        qx.RandomString(8),
+	}
 }
 
 func SelectDistinctOn(distinctFields ...qx.Field) func(...qx.Field) SelectQuery {
 	return func(fields ...qx.Field) SelectQuery {
-		return NewSelectQuery().SelectDistinctOn(distinctFields...)(fields...)
+		return SelectQuery{
+			SelectType:   qx.SelectTypeDistinctOn,
+			DistinctOn:   distinctFields,
+			SelectFields: fields,
+			Alias:        qx.RandomString(8),
+		}
 	}
 }
 
 func Selectx(mapper func(Row), accumulator func()) SelectQuery {
-	return NewSelectQuery().Selectx(mapper, accumulator)
+	return SelectQuery{
+		Mapper:      mapper,
+		Accumulator: accumulator,
+		Alias:       qx.RandomString(8),
+	}
 }
 
 func SelectRowx(mapper func(Row)) SelectQuery {
-	return NewSelectQuery().SelectRowx(mapper)
+	return SelectQuery{
+		Mapper: mapper,
+		Alias:  qx.RandomString(8),
+	}
 }
 
 func (q SelectQuery) With(ctes ...qx.CTE) SelectQuery {
