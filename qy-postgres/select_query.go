@@ -131,11 +131,6 @@ func (q SelectQuery) ToSQL() (string, []interface{}) {
 	return query, args
 }
 
-func NewSelectQuery() SelectQuery {
-	q := SelectQuery{Alias: qx.RandomString(8)}
-	return q
-}
-
 func From(table qx.Table) SelectQuery {
 	return SelectQuery{
 		FromTable: table,

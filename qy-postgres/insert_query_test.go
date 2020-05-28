@@ -167,8 +167,7 @@ func TestInsertMisc1(t *testing.T) {
 	// check that the addressIDs of all the returned customers point indeed to Canada
 	addr, city, coun := tables.ADDRESS(), tables.CITY(), tables.COUNTRY()
 	var country string
-	s := NewSelectQuery()
-	s.Log = log.New(os.Stdout, "", log.Lshortfile)
+	s := Qy{Log: log.New(os.Stdout, "", log.Lshortfile)}.Select()
 	err = s.From(addr).
 		Join(city, city.CITY_ID.Eq(addr.CITY_ID)).
 		Join(coun, coun.COUNTRY_ID.Eq(city.COUNTRY_ID)).
