@@ -120,12 +120,11 @@ func (q DeleteQuery) As(alias string) DeleteQuery {
 	return q
 }
 
-func NewDeleteQuery() DeleteQuery {
-	return DeleteQuery{Alias: qx.RandomString(8)}
-}
-
 func DeleteFrom(table qx.BaseTable) DeleteQuery {
-	return NewDeleteQuery().DeleteFrom(table)
+	return DeleteQuery{
+		FromTable: table,
+		Alias:     qx.RandomString(8),
+	}
 }
 
 func (q DeleteQuery) With(cteList ...qx.CTE) DeleteQuery {
