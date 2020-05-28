@@ -83,7 +83,7 @@ func TestInsertMisc1(t *testing.T) {
 		" FROM customer AS cust WHERE cust.address_id IN (SELECT address_id FROM C))"
 
 	cust := tables.CUSTOMER().As("cust")
-	i := func() *InsertQuery {
+	i := func() InsertQuery {
 		q := NewInsertQuery().With(A, B, C, D)
 		q.Log = log.New(os.Stdout, "", log.Lshortfile)
 		return q

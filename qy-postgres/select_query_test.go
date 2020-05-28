@@ -18,7 +18,7 @@ func TestSelectQuery_Get(t *testing.T) {
 		wantQuery   string
 		wantArgs    []interface{}
 	}
-	s := func() *SelectQuery {
+	s := func() SelectQuery {
 		sel := NewSelectQuery()
 		sel.Log = log.New(os.Stdout, "", log.Lshortfile)
 		return sel
@@ -128,11 +128,11 @@ func TestSelectQuery_With(t *testing.T) {
 func TestSelectQuery_Select(t *testing.T) {
 	type TT struct {
 		DESCRIPTION string
-		q           *SelectQuery
+		q           SelectQuery
 		wantQuery   string
 		wantArgs    []interface{}
 	}
-	s := func() *SelectQuery {
+	s := func() SelectQuery {
 		sel := NewSelectQuery()
 		sel.Log = log.New(os.Stdout, "", log.Lshortfile)
 		return sel
@@ -189,11 +189,11 @@ func TestSelectQuery_Select(t *testing.T) {
 func TestSelectQuery_From(t *testing.T) {
 	type TT struct {
 		DESCRIPTION string
-		q           *SelectQuery
+		q           SelectQuery
 		wantQuery   string
 		wantArgs    []interface{}
 	}
-	s := func() *SelectQuery {
+	s := func() SelectQuery {
 		sel := NewSelectQuery()
 		sel.Log = log.New(os.Stdout, "", log.Lshortfile)
 		return sel
@@ -229,11 +229,11 @@ func TestSelectQuery_From(t *testing.T) {
 func TestSelectQuery_Joins(t *testing.T) {
 	type TT struct {
 		DESCRIPTION string
-		q           *SelectQuery
+		q           SelectQuery
 		wantQuery   string
 		wantArgs    []interface{}
 	}
-	s := func() *SelectQuery {
+	s := func() SelectQuery {
 		sel := NewSelectQuery()
 		sel.Log = log.New(os.Stdout, "", log.Lshortfile)
 		return sel
@@ -306,11 +306,11 @@ func TestSelectQuery_Joins(t *testing.T) {
 func TestSelectQuery_Where(t *testing.T) {
 	type TT struct {
 		DESCRIPTION string
-		q           *SelectQuery
+		q           SelectQuery
 		wantQuery   string
 		wantArgs    []interface{}
 	}
-	s := func() *SelectQuery {
+	s := func() SelectQuery {
 		sel := NewSelectQuery()
 		sel.Log = log.New(os.Stdout, "", log.Lshortfile)
 		return sel
@@ -386,11 +386,11 @@ func TestSelectQuery_Where(t *testing.T) {
 func TestSelectQuery_GroupBy(t *testing.T) {
 	type TT struct {
 		DESCRIPTION string
-		q           *SelectQuery
+		q           SelectQuery
 		wantQuery   string
 		wantArgs    []interface{}
 	}
-	s := func() *SelectQuery {
+	s := func() SelectQuery {
 		sel := NewSelectQuery()
 		sel.Log = log.New(os.Stdout, "", log.Lshortfile)
 		return sel
@@ -419,11 +419,11 @@ func TestSelectQuery_GroupBy(t *testing.T) {
 func TestSelectQuery_Having(t *testing.T) {
 	type TT struct {
 		DESCRIPTION string
-		q           *SelectQuery
+		q           SelectQuery
 		wantQuery   string
 		wantArgs    []interface{}
 	}
-	s := func() *SelectQuery {
+	s := func() SelectQuery {
 		sel := NewSelectQuery()
 		sel.Log = log.New(os.Stdout, "", log.Lshortfile)
 		return sel
@@ -499,11 +499,11 @@ func TestSelectQuery_Having(t *testing.T) {
 func TestSelectQuery_OrderBy(t *testing.T) {
 	type TT struct {
 		DESCRIPTION string
-		q           *SelectQuery
+		q           SelectQuery
 		wantQuery   string
 		wantArgs    []interface{}
 	}
-	s := func() *SelectQuery {
+	s := func() SelectQuery {
 		sel := NewSelectQuery()
 		sel.Log = log.New(os.Stdout, "", log.Lshortfile)
 		return sel
@@ -551,11 +551,11 @@ func TestSelectQuery_OrderBy(t *testing.T) {
 func TestSelectQuery_Limit_Offset(t *testing.T) {
 	type TT struct {
 		DESCRIPTION string
-		q           *SelectQuery
+		q           SelectQuery
 		wantQuery   string
 		wantArgs    []interface{}
 	}
-	s := func() *SelectQuery {
+	s := func() SelectQuery {
 		sel := NewSelectQuery()
 		sel.Log = log.New(os.Stdout, "", log.Lshortfile)
 		return sel
