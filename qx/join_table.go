@@ -35,11 +35,19 @@ func (joins JoinTables) WriteSQL(buf *strings.Builder, args *[]interface{}) (wri
 		if joins[i].Table == nil {
 			continue
 		}
-		tableQuery, tableArgs := joins[i].Table.ToSQL()
+		var tableQuery string
+		var tableArgs []interface{}
+		var q Query
+		var isQuery bool
+		if q, isQuery = joins[i].Table.(Query); isQuery {
+			tableQuery, tableArgs = q.NestThis().ToSQL()
+		} else {
+			tableQuery, tableArgs = joins[i].Table.ToSQL()
+		}
 		if tableQuery == "" {
 			continue
 		}
-		if _, ok := joins[i].Table.(Query); ok {
+		if isQuery {
 			tableQuery = "(" + tableQuery + ")"
 		}
 		if joins[i].JoinType == "" {

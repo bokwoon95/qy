@@ -170,6 +170,36 @@ func (qy BaseQuery) Select(fields ...qx.Field) SelectQuery {
 	}
 }
 
+func (qy BaseQuery) SelectOne() SelectQuery {
+	return SelectQuery{
+		SelectFields: qx.Fields{qx.FieldLiteral("1")},
+		Alias:        qx.RandomString(8),
+		CTEs:         qy.CTEs,
+		Log:          qy.Log,
+		DB:           qy.DB,
+	}
+}
+
+func (qy BaseQuery) SelectAll() SelectQuery {
+	return SelectQuery{
+		SelectFields: qx.Fields{qx.FieldLiteral("*")},
+		Alias:        qx.RandomString(8),
+		CTEs:         qy.CTEs,
+		Log:          qy.Log,
+		DB:           qy.DB,
+	}
+}
+
+func (qy BaseQuery) SelectCount() SelectQuery {
+	return SelectQuery{
+		SelectFields: qx.Fields{qx.FieldLiteral("COUNT(*)")},
+		Alias:        qx.RandomString(8),
+		CTEs:         qy.CTEs,
+		Log:          qy.Log,
+		DB:           qy.DB,
+	}
+}
+
 func (qy BaseQuery) SelectDistinct(fields ...qx.Field) SelectQuery {
 	return SelectQuery{
 		SelectType:   qx.SelectTypeDistinct,

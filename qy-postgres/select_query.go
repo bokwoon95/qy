@@ -146,6 +146,13 @@ func Select(fields ...qx.Field) SelectQuery {
 	}
 }
 
+func SelectOne(fields ...qx.Field) SelectQuery {
+	return SelectQuery{
+		SelectFields: qx.Fields{qx.FieldLiteral("1")},
+		Alias:        qx.RandomString(8),
+	}
+}
+
 func SelectDistinct(fields ...qx.Field) SelectQuery {
 	return SelectQuery{
 		SelectType:   qx.SelectTypeDistinct,
@@ -187,6 +194,21 @@ func (q SelectQuery) With(ctes ...qx.CTE) SelectQuery {
 
 func (q SelectQuery) Select(fields ...qx.Field) SelectQuery {
 	q.SelectFields = append(q.SelectFields, fields...)
+	return q
+}
+
+func (q SelectQuery) SelectOne() SelectQuery {
+	q.SelectFields = qx.Fields{qx.FieldLiteral("1")}
+	return q
+}
+
+func (q SelectQuery) SelectAll() SelectQuery {
+	q.SelectFields = qx.Fields{qx.FieldLiteral("*")}
+	return q
+}
+
+func (q SelectQuery) SelectCount() SelectQuery {
+	q.SelectFields = qx.Fields{qx.FieldLiteral("COUNT(*)")}
 	return q
 }
 

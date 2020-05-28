@@ -210,6 +210,11 @@ func (q UpdateQuery) Returning(fields ...qx.Field) UpdateQuery {
 	return q
 }
 
+func (q UpdateQuery) ReturningOne() UpdateQuery {
+	q.ReturningFields = qx.Fields{qx.FieldLiteral("1")}
+	return q
+}
+
 func (q UpdateQuery) Returningx(mapper func(Row), accumulator func()) UpdateQuery {
 	q.Mapper = mapper
 	q.Accumulator = accumulator

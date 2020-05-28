@@ -13,6 +13,9 @@ func NewCTE(name string, query qx.Query) qx.CTE {
 	}
 }
 
+func And(predicates ...qx.Predicate) qx.Predicate { return qx.And(predicates...) }
+func Or(predicates ...qx.Predicate) qx.Predicate  { return qx.Or(predicates...) }
+
 func Array(slice interface{}) qx.ArrayField { return qx.Array(slice) }
 func Bytes(b []byte) qx.BinaryField         { return qx.Bytes(b) }
 func Bool(b bool) qx.BooleanField           { return qx.Bool(b) }

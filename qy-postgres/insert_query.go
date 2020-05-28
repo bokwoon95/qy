@@ -231,6 +231,11 @@ func (q InsertQuery) Returning(fields ...qx.Field) InsertQuery {
 	return q
 }
 
+func (q InsertQuery) ReturningOne() InsertQuery {
+	q.ReturningFields = qx.Fields{qx.FieldLiteral("1")}
+	return q
+}
+
 func (q InsertQuery) Returningx(mapper func(Row), accumulator func()) InsertQuery {
 	q.Mapper = mapper
 	q.Accumulator = accumulator

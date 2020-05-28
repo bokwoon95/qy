@@ -191,8 +191,18 @@ func (q DeleteQuery) CrossJoin(tbl qx.Table) DeleteQuery {
 	return q
 }
 
+func (q DeleteQuery) Where(predicates ...qx.Predicate) DeleteQuery {
+	q.WherePredicates.Predicates = append(q.WherePredicates.Predicates, predicates...)
+	return q
+}
+
 func (q DeleteQuery) Returning(fields ...qx.Field) DeleteQuery {
 	q.ReturningFields = append(q.ReturningFields, fields...)
+	return q
+}
+
+func (q DeleteQuery) ReturningOne() DeleteQuery {
+	q.ReturningFields = qx.Fields{qx.FieldLiteral("1")}
 	return q
 }
 

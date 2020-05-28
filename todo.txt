@@ -7,3 +7,9 @@ CASE..WHEN syntax (qz)
 Window Functions (qz/qy?)
 Recursive CTEs
 JSON operations
+
+Regression tests:
+- Ensure a Select/Insert/Update/Delete query's placeholder rebinding always gets deferred when in a 
+    - Fieldf
+    - Predicatef
+    - JoinTable

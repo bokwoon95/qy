@@ -38,6 +38,8 @@ func FormatPreprocessor(format string, values []interface{}, excludeTableQualifi
 			query = buf.String()
 		case Predicate:
 			query, args = value.ToSQLExclude(excludeTableQualifiers)
+		case Query:
+			query, args = value.NestThis().ToSQL()
 		case Table:
 			query, args = value.ToSQL()
 		case FieldValueSet:
