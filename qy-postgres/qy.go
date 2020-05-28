@@ -111,16 +111,5 @@ func Queryf(format string, values ...interface{}) qx.CustomQuery {
 	}
 }
 
-type QueryOption func(qx.Query) qx.Query
-
-func WithLog(logger qx.Logger) func(qx.Query) qx.Query {
-	return func(q qx.Query) qx.Query {
-		switch q := q.(type) {
-		case *SelectQuery:
-			q.Log = logger
-			return q
-		default:
-			return q
-		}
-	}
+type BaseQuery struct {
 }

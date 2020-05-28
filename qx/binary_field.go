@@ -7,9 +7,9 @@ type BinaryField struct {
 	value *[]byte
 
 	// 2) BYTEA/BLOB column
-	alias      string
-	table      Table
-	name       string
+	alias string
+	table Table
+	name  string
 }
 
 // ToSQL marshals a BinaryField into an SQL query and args (as described in the

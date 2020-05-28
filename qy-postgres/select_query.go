@@ -36,9 +36,14 @@ type SelectQuery struct {
 	LimitValue *uint64
 	// OFFSET
 	OffsetValue *uint64
-	// Exec
-	Mapper      func(Row)
-	Accumulator func()
+	// Queryer
+	Queryer        qx.Queryer
+	QueryerContext qx.QueryerContext
+	Mapper         func(Row)
+	Accumulator    func()
+	// Execer
+	Execer        qx.Execer
+	ExecerContext qx.ExecerContext
 	// Logging
 	Log     qx.Logger
 	LogSkip int

@@ -65,6 +65,15 @@ type QueryerContext interface {
 	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
 }
 
+type Execer interface {
+	Exec(query string, args ...interface{}) (sql.Result, error)
+}
+
+type ExecerContext interface {
+	Execer
+	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+}
+
 // Logger is an interface that provides logging.
 type Logger interface {
 	Output(calldepth int, s string) error

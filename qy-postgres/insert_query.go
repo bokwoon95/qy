@@ -33,8 +33,12 @@ type InsertQuery struct {
 	ResolutionPredicates qx.VariadicPredicate
 	// RETURNING
 	ReturningFields qx.Fields
-	Mapper          func(Row)
-	Accumulator     func()
+	// Fetch
+	QueryerContext qx.QueryerContext
+	Mapper         func(Row)
+	Accumulator    func()
+	// Exec
+	ExecerContext qx.ExecerContext
 	// Logging
 	Log     qx.Logger
 	LogSkip int
