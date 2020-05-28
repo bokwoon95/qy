@@ -309,17 +309,12 @@ func (q InsertQuery) FetchContext(ctx context.Context, db qx.DB) (err error) {
 	return r.QxRow.Rows.Err()
 }
 
-func (q InsertQuery) Exec() (sql.Result, error) {
+func (q InsertQuery) Exec(db qx.DB) (sql.Result, error) {
 	q.LogSkip += 1
-	return q.ExecDB(nil)
+	return q.ExecContext(nil, db)
 }
 
-func (q InsertQuery) ExecDB(db qx.DB) (sql.Result, error) {
-	q.LogSkip += 1
-	return q.ExecDBContext(nil, db)
-}
-
-func (q InsertQuery) ExecDBContext(ctx context.Context, db qx.DB) (sql.Result, error) {
+func (q InsertQuery) ExecContext(ctx context.Context, db qx.DB) (sql.Result, error) {
 	var res sql.Result
 	var err error
 	if db == nil {
