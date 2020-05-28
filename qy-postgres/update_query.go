@@ -221,17 +221,12 @@ func (q UpdateQuery) ReturningRowx(mapper func(Row)) UpdateQuery {
 	return q
 }
 
-func (q UpdateQuery) Fetch() error {
+func (q UpdateQuery) Fetch(db qx.DB) (err error) {
 	q.LogSkip += 1
-	return q.FetchDB(nil)
+	return q.FetchContext(nil, db)
 }
 
-func (q UpdateQuery) FetchDB(db qx.DB) (err error) {
-	q.LogSkip += 1
-	return q.FetchDBContext(nil, db)
-}
-
-func (q UpdateQuery) FetchDBContext(ctx context.Context, db qx.DB) (err error) {
+func (q UpdateQuery) FetchContext(ctx context.Context, db qx.DB) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			switch v := r.(type) {
@@ -293,17 +288,12 @@ func (q UpdateQuery) FetchDBContext(ctx context.Context, db qx.DB) (err error) {
 	return r.QxRow.Rows.Err()
 }
 
-func (q UpdateQuery) Exec() (sql.Result, error) {
+func (q UpdateQuery) Exec(db qx.DB) (sql.Result, error) {
 	q.LogSkip += 1
-	return q.ExecDB(nil)
+	return q.ExecContext(nil, db)
 }
 
-func (q UpdateQuery) ExecDB(db qx.DB) (sql.Result, error) {
-	q.LogSkip += 1
-	return q.ExecDBContext(nil, db)
-}
-
-func (q UpdateQuery) ExecDBContext(ctx context.Context, db qx.DB) (sql.Result, error) {
+func (q UpdateQuery) ExecContext(ctx context.Context, db qx.DB) (sql.Result, error) {
 	var res sql.Result
 	var err error
 	if db == nil {
