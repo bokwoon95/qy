@@ -207,17 +207,12 @@ func (q DeleteQuery) ReturningRowx(mapper func(Row)) DeleteQuery {
 	return q
 }
 
-func (q DeleteQuery) Fetch() error {
+func (q DeleteQuery) Fetch(db qx.DB) (err error) {
 	q.LogSkip += 1
-	return q.FetchDB(nil)
+	return q.FetchContext(nil, db)
 }
 
-func (q DeleteQuery) FetchDB(db qx.DB) (err error) {
-	q.LogSkip += 1
-	return q.FetchDBContext(nil, db)
-}
-
-func (q DeleteQuery) FetchDBContext(ctx context.Context, db qx.DB) (err error) {
+func (q DeleteQuery) FetchContext(ctx context.Context, db qx.DB) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			switch v := r.(type) {
@@ -279,17 +274,12 @@ func (q DeleteQuery) FetchDBContext(ctx context.Context, db qx.DB) (err error) {
 	return r.QxRow.Rows.Err()
 }
 
-func (q DeleteQuery) Exec() (sql.Result, error) {
+func (q DeleteQuery) Exec(db qx.DB) (sql.Result, error) {
 	q.LogSkip += 1
-	return q.ExecDB(nil)
+	return q.ExecContext(nil, db)
 }
 
-func (q DeleteQuery) ExecDB(db qx.DB) (sql.Result, error) {
-	q.LogSkip += 1
-	return q.ExecDBContext(nil, db)
-}
-
-func (q DeleteQuery) ExecDBContext(ctx context.Context, db qx.DB) (sql.Result, error) {
+func (q DeleteQuery) ExecContext(ctx context.Context, db qx.DB) (sql.Result, error) {
 	var res sql.Result
 	var err error
 	if db == nil {
