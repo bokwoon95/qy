@@ -433,7 +433,7 @@ func {{$function.Constructor | trimUnderscorePrefix}}_(
 		Schema: "{{$function.Schema}}",
 		Name: "{{$function.Name}}",
 		Arguments: []interface{}{{"{"}}{{range $i, $arg := $function.Arguments}}{{if not $i}}{{$arg.Name}}{{else}}, {{$arg.Name}}{{end}}{{end}}{{"}"}},
-	}}
+	},}
 	{{- range $_, $field := $function.Results}}
 	f.{{$field.Name | uppercase | trimUnderscorePrefix}} = {{$field.Constructor}}("{{$field.Name}}", f.FunctionInfo)
 	{{- end}}

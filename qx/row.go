@@ -132,43 +132,6 @@ func (r *QxRow) IntValid_(field Field) bool {
 	return r.NullInt64_(field).Valid
 }
 
-// /* int32 */
-//
-// func (r *QxRow) Int32(field NumberField) int32 {
-// 	return r.NullInt32_(field).Int32
-// }
-//
-// func (r *QxRow) Int32_(field Field) int32 {
-// 	return r.NullInt32_(field).Int32
-// }
-//
-// func (r *QxRow) Int32Valid(field NumberField) bool {
-// 	return r.NullInt32_(field).Valid
-// }
-//
-// func (r *QxRow) Int32Valid_(field Field) bool {
-// 	return r.NullInt32_(field).Valid
-// }
-//
-// func (r *QxRow) NullInt32(field NumberField) sql.NullInt32 {
-// 	return r.NullInt32_(field)
-// }
-//
-// func (r *QxRow) NullInt32_(field Field) sql.NullInt32 {
-// 	if r.Rows == nil {
-// 		r.Fields = append(r.Fields, field)
-// 		r.Dest = append(r.Dest, &sql.NullInt32{})
-// 		return sql.NullInt32{}
-// 	}
-// 	switch val := r.Dest[r.Index].(type) {
-// 	case *sql.NullInt32:
-// 		r.Index++
-// 		return *val
-// 	default:
-// 		panic("type mismatch")
-// 	}
-// }
-
 /* int64 */
 
 func (r *QxRow) Int64(field NumberField) int64 {

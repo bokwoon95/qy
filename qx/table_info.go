@@ -9,6 +9,7 @@ type TableInfo struct {
 	Alias  string
 }
 
+// TODO: deprecate this constructor
 // NewTableInfo returns a new TableInfo.
 func NewTableInfo(schema, name string) *TableInfo {
 	return &TableInfo{

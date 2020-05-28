@@ -165,6 +165,7 @@ const (
 	FieldTypeTime    = "qx.TimeField"
 	FieldTypeEnum    = "qx.EnumField"
 	FieldTypeArray   = "qx.ArrayField"
+	FieldTypeBinary  = "qx.BinaryField"
 
 	FieldConstructorBoolean = "qx.NewBooleanField"
 	FieldConstructorJSON    = "qx.NewJSONField"
@@ -173,6 +174,7 @@ const (
 	FieldConstructorTime    = "qx.NewTimeField"
 	FieldConstructorEnum    = "qx.NewEnumField"
 	FieldConstructorArray   = "qx.NewArrayField"
+	FieldConstructorBinary  = "qx.NewBinaryField"
 )
 
 // processTables will walk through each table and its columns (fields) and annotate
@@ -228,6 +230,9 @@ func processTables(inputTables []Table, err error) ([]Table, error) {
 			case isArray(field.RawType):
 				field.Type = FieldTypeArray
 				field.Constructor = FieldConstructorArray
+			case isBinary(field.RawType):
+				field.Type = FieldTypeBinary
+				field.Constructor = FieldConstructorBinary
 			default:
 				continue
 			}
@@ -287,7 +292,10 @@ type {{uppercase $table.StructName}} struct {
 // {{$table.Constructor}} creates an instance of the {{$table.Schema}}.{{$table.Name}} view
 {{- end}}
 func {{$table.Constructor}}() {{$table.StructName}} {
-	tbl := {{$table.StructName}}{TableInfo: qx.NewTableInfo("{{$table.Schema}}", "{{$table.Name}}")}
+	tbl := {{$table.StructName}}{TableInfo: &qx.TableInfo{
+		Schema: "{{$table.Schema}}",
+		Name: "{{$table.Name}}",
+	},}
 	{{- range $_, $field := $table.Fields}}
 	tbl.{{uppercase $field.Name}} = {{$field.Constructor}}("{{$field.Name}}", tbl.TableInfo)
 	{{- end}}
@@ -299,9 +307,12 @@ func {{$table.Constructor}}() {{$table.StructName}} {
 {{- define "table_as"}}
 {{- with $table := .}}
 func (tbl {{$table.StructName}}) As(alias string) {{$table.StructName}} {
-	tbl2 := {{$table.Constructor}}()
-	tbl2.TableInfo.Alias = alias
-	return tbl2
+	tbl.TableInfo = &qx.TableInfo{
+		Schema: tbl.TableInfo.Schema,
+		Name: tbl.TableInfo.Name,
+		Alias: alias,
+	}
+	return tbl
 }
 {{- end}}
 {{- end}}`
@@ -501,4 +512,8 @@ func isEnum(rawtype string) bool {
 
 func isArray(rawtype string) bool {
 	return rawtype == "ARRAY"
+}
+
+func isBinary(rawtype string) bool {
+	return rawtype == "bytea"
 }
