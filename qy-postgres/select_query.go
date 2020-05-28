@@ -305,12 +305,12 @@ func (q SelectQuery) SelectRowx(mapper func(Row)) SelectQuery {
 	return q
 }
 
-func (q SelectQuery) Fetch() (err error) {
+func (q SelectQuery) Fetch() error {
 	q.LogSkip += 1
 	return q.FetchDB(nil)
 }
 
-func (q SelectQuery) FetchDB(db qx.DB) (err error) {
+func (q SelectQuery) FetchDB(db qx.DB) error {
 	q.LogSkip += 1
 	return q.FetchDBContext(nil, db)
 }
@@ -347,7 +347,7 @@ func (q SelectQuery) FetchDBContext(ctx context.Context, db qx.DB) (err error) {
 	if err != nil {
 		return err
 	}
-	defer r.Rows.Close()
+	defer r.QxRow.Rows.Close()
 	var rowcount int
 	if len(r.QxRow.Dest) == 0 {
 		// If there's nothing to scan into, return early

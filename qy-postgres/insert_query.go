@@ -1,6 +1,7 @@
 package qy
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -241,7 +242,17 @@ func (q InsertQuery) ReturningRowx(mapper func(Row)) InsertQuery {
 	return q
 }
 
-func (q InsertQuery) Exec(db qx.Queryer) (err error) {
+func (q InsertQuery) Fetch() error {
+	q.LogSkip += 1
+	return q.FetchDB(nil)
+}
+
+func (q InsertQuery) FetchDB(db qx.DB) (err error) {
+	q.LogSkip += 1
+	return q.FetchDBContext(nil, db)
+}
+
+func (q InsertQuery) FetchDBContext(ctx context.Context, db qx.DB) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			switch v := r.(type) {
@@ -252,6 +263,9 @@ func (q InsertQuery) Exec(db qx.Queryer) (err error) {
 			}
 		}
 	}()
+	if db == nil {
+		return errors.New("DB cannot be nil")
+	}
 	r := &QyRow{QxRow: &qx.QxRow{}}
 	if q.Mapper != nil {
 		q.Mapper(r) // call the mapper once on the *Row to get all the selected that the user is interested in
@@ -259,7 +273,11 @@ func (q InsertQuery) Exec(db qx.Queryer) (err error) {
 	q.ReturningFields = r.QxRow.Fields // then, transfer the selected collected by *Row to the InsertQuery
 	q.LogSkip += 1
 	query, args := q.ToSQL()
-	r.QxRow.Rows, err = db.Query(query, args...)
+	if ctx == nil {
+		r.QxRow.Rows, err = db.Query(query, args...)
+	} else {
+		r.QxRow.Rows, err = db.QueryContext(ctx, query, args...)
+	}
 	if err != nil {
 		return err
 	}
@@ -296,10 +314,30 @@ func (q InsertQuery) Exec(db qx.Queryer) (err error) {
 	return r.QxRow.Rows.Err()
 }
 
-func (q InsertQuery) ExecWithLog(db qx.Queryer, log qx.Logger) error {
+func (q InsertQuery) Exec() (sql.Result, error) {
 	q.LogSkip += 1
-	q.Log = log
-	return q.Exec(db)
+	return q.ExecDB(nil)
+}
+
+func (q InsertQuery) ExecDB(db qx.DB) (sql.Result, error) {
+	q.LogSkip += 1
+	return q.ExecDBContext(nil, db)
+}
+
+func (q InsertQuery) ExecDBContext(ctx context.Context, db qx.DB) (sql.Result, error) {
+	var res sql.Result
+	var err error
+	if db == nil {
+		return res, errors.New("DB cannot be nil")
+	}
+	q.LogSkip += 1
+	query, args := q.ToSQL()
+	if ctx == nil {
+		res, err = db.Exec(query, args...)
+	} else {
+		res, err = db.ExecContext(ctx, query, args...)
+	}
+	return res, err
 }
 
 func (q InsertQuery) As(alias string) InsertQuery {
