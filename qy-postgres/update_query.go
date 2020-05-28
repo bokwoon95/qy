@@ -28,8 +28,10 @@ type UpdateQuery struct {
 	WherePredicates qx.VariadicPredicate
 	// RETURNING
 	ReturningFields qx.Fields
-	Mapper          func(Row)
-	Accumulator     func()
+	// DB
+	DB          qx.DB
+	Mapper      func(Row)
+	Accumulator func()
 	// Logging
 	Log     qx.Logger
 	LogSkip int

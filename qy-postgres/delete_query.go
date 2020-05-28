@@ -26,8 +26,10 @@ type DeleteQuery struct {
 	WherePredicates qx.VariadicPredicate
 	// RETURNING
 	ReturningFields qx.Fields
-	Mapper          func(Row)
-	Accumulator     func()
+	// DB
+	DB          qx.DB
+	Mapper      func(Row)
+	Accumulator func()
 	// Logging
 	Log     qx.Logger
 	LogSkip int
@@ -122,8 +124,8 @@ func NewDeleteQuery() DeleteQuery {
 	return DeleteQuery{Alias: qx.RandomString(8)}
 }
 
-func DeleteFrom(tbl qx.BaseTable) DeleteQuery {
-	return NewDeleteQuery().DeleteFrom(tbl)
+func DeleteFrom(table qx.BaseTable) DeleteQuery {
+	return NewDeleteQuery().DeleteFrom(table)
 }
 
 func (q DeleteQuery) With(cteList ...qx.CTE) DeleteQuery {

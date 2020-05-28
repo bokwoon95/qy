@@ -111,5 +111,121 @@ func Queryf(format string, values ...interface{}) qx.CustomQuery {
 	}
 }
 
-type BaseQuery struct {
+type Qy struct {
+	DB   qx.DB
+	Log  qx.Logger
+	CTEs qx.CTEs
+}
+
+func (qy Qy) WithLog(logger qx.Logger) Qy {
+	qy.Log = logger
+	return qy
+}
+
+func (qy Qy) WithDB(db qx.DB) Qy {
+	qy.DB = db
+	return qy
+}
+
+func (qy Qy) With(ctes ...qx.CTE) Qy {
+	qy.CTEs = ctes
+	return qy
+}
+
+func (qy Qy) From(table qx.Table) SelectQuery {
+	return SelectQuery{
+		FromTable: table,
+		Alias:     qx.RandomString(8),
+		CTEs:      qy.CTEs,
+		DB:        qy.DB,
+		Log:       qy.Log,
+	}
+}
+
+func (qy Qy) Select(fields ...qx.Field) SelectQuery {
+	return SelectQuery{
+		SelectFields: fields,
+		Alias:        qx.RandomString(8),
+		CTEs:         qy.CTEs,
+		Log:          qy.Log,
+		DB:           qy.DB,
+	}
+}
+
+func (qy Qy) SelectDistinct(fields ...qx.Field) SelectQuery {
+	return SelectQuery{
+		SelectType:   qx.SelectTypeDistinct,
+		SelectFields: fields,
+		Alias:        qx.RandomString(8),
+		CTEs:         qy.CTEs,
+		DB:           qy.DB,
+		Log:          qy.Log,
+	}
+}
+
+func (qy Qy) SelectDistinctOn(distinctFields ...qx.Field) func(...qx.Field) SelectQuery {
+	return func(fields ...qx.Field) SelectQuery {
+		return SelectQuery{
+			SelectType:   qx.SelectTypeDistinctOn,
+			DistinctOn:   distinctFields,
+			SelectFields: fields,
+			Alias:        qx.RandomString(8),
+			CTEs:         qy.CTEs,
+			DB:           qy.DB,
+			Log:          qy.Log,
+		}
+	}
+}
+
+func (qy Qy) Selectx(mapper func(Row), accumulator func()) SelectQuery {
+	return SelectQuery{
+		SelectType:  qx.SelectTypeDistinctOn,
+		Mapper:      mapper,
+		Accumulator: accumulator,
+		Alias:       qx.RandomString(8),
+		CTEs:        qy.CTEs,
+		DB:          qy.DB,
+		Log:         qy.Log,
+	}
+}
+
+func (qy Qy) SelectRowx(mapper func(Row)) SelectQuery {
+	return SelectQuery{
+		SelectType: qx.SelectTypeDistinctOn,
+		Mapper:     mapper,
+		Alias:      qx.RandomString(8),
+		CTEs:       qy.CTEs,
+		DB:         qy.DB,
+		Log:        qy.Log,
+	}
+}
+
+func (qy Qy) InsertInto(table qx.BaseTable) InsertQuery {
+	return InsertQuery{
+		IntoTable: table,
+		Alias:     qx.RandomString(8),
+		CTEs:      qy.CTEs,
+		DB:        qy.DB,
+		Log:       qy.Log,
+	}
+}
+
+func (qy Qy) Update(table qx.BaseTable) UpdateQuery {
+	return UpdateQuery{
+		UpdateTable: table,
+		Alias:       qx.RandomString(8),
+		CTEs:        qy.CTEs,
+		DB:          qy.DB,
+		Log:         qy.Log,
+	}
+}
+
+func (qy Qy) DeleteFrom(table qx.BaseTable) DeleteQuery {
+	return DeleteQuery{
+		FromTable: table,
+		Alias:     qx.RandomString(8),
+		CTEs:      qy.CTEs,
+		DB:        qy.DB,
+		Log:       qy.Log,
+	}
 }

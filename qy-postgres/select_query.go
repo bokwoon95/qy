@@ -36,14 +36,10 @@ type SelectQuery struct {
 	LimitValue *uint64
 	// OFFSET
 	OffsetValue *uint64
-	// Queryer
-	Queryer        qx.Queryer
-	QueryerContext qx.QueryerContext
-	Mapper         func(Row)
-	Accumulator    func()
-	// Execer
-	Execer        qx.Execer
-	ExecerContext qx.ExecerContext
+	// DB
+	DB          qx.DB
+	Mapper      func(Row)
+	Accumulator func()
 	// Logging
 	Log     qx.Logger
 	LogSkip int
@@ -291,7 +287,7 @@ func (q SelectQuery) SelectRowx(mapper func(Row)) SelectQuery {
 	return q
 }
 
-func (q SelectQuery) Exec(db qx.Queryer) (err error) {
+func (q SelectQuery) Fetch(db qx.Queryer) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			switch v := r.(type) {
@@ -355,7 +351,7 @@ func (q SelectQuery) Exec(db qx.Queryer) (err error) {
 func (q SelectQuery) ExecWithLog(db qx.Queryer, log qx.Logger) error {
 	q.LogSkip += 1
 	q.Log = log
-	return q.Exec(db)
+	return q.Fetch(db)
 }
 
 func (q SelectQuery) As(alias string) SelectQuery {
