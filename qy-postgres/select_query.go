@@ -1,6 +1,7 @@
 package qy
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -304,7 +305,17 @@ func (q SelectQuery) SelectRowx(mapper func(Row)) SelectQuery {
 	return q
 }
 
-func (q SelectQuery) Fetch(db qx.Queryer) (err error) {
+func (q SelectQuery) Fetch() (err error) {
+	q.LogSkip += 1
+	return q.FetchDB(nil)
+}
+
+func (q SelectQuery) FetchDB(db qx.DB) (err error) {
+	q.LogSkip += 1
+	return q.FetchDBContext(nil, db)
+}
+
+func (q SelectQuery) FetchDBContext(ctx context.Context, db qx.DB) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			switch v := r.(type) {
@@ -315,6 +326,9 @@ func (q SelectQuery) Fetch(db qx.Queryer) (err error) {
 			}
 		}
 	}()
+	if db == nil {
+		return errors.New("DB cannot be nil")
+	}
 	r := &QyRow{QxRow: &qx.QxRow{}}
 	if q.Mapper != nil {
 		q.Mapper(r)                     // call the mapper once on the *Row to get all the selected that the user is interested in
@@ -325,7 +339,11 @@ func (q SelectQuery) Fetch(db qx.Queryer) (err error) {
 	}
 	q.LogSkip += 1
 	query, args := q.ToSQL()
-	r.QxRow.Rows, err = db.Query(query, args...)
+	if ctx == nil {
+		r.QxRow.Rows, err = db.Query(query, args...)
+	} else {
+		r.QxRow.Rows, err = db.QueryContext(ctx, query, args...)
+	}
 	if err != nil {
 		return err
 	}
@@ -365,10 +383,30 @@ func (q SelectQuery) Fetch(db qx.Queryer) (err error) {
 	return r.QxRow.Rows.Err()
 }
 
-func (q SelectQuery) ExecWithLog(db qx.Queryer, log qx.Logger) error {
+func (q SelectQuery) Exec() (sql.Result, error) {
 	q.LogSkip += 1
-	q.Log = log
-	return q.Fetch(db)
+	return q.ExecDB(nil)
+}
+
+func (q SelectQuery) ExecDB(db qx.DB) (sql.Result, error) {
+	q.LogSkip += 1
+	return q.ExecDBContext(nil, db)
+}
+
+func (q SelectQuery) ExecDBContext(ctx context.Context, db qx.DB) (sql.Result, error) {
+	var res sql.Result
+	var err error
+	if db == nil {
+		return res, errors.New("DB cannot be nil")
+	}
+	q.LogSkip += 1
+	query, args := q.ToSQL()
+	if ctx == nil {
+		res, err = db.Exec(query, args...)
+	} else {
+		res, err = db.ExecContext(ctx, query, args...)
+	}
+	return res, err
 }
 
 func (q SelectQuery) As(alias string) SelectQuery {

@@ -178,7 +178,7 @@ func TestInsertMisc1(t *testing.T) {
 			if country != "Canada" {
 				t.Errorf("expected every country returned to be 'Canada'")
 			}
-		}).Fetch(db)
+		}).FetchDB(db)
 	is.NoErr(err)
 
 	v2GotQuery, v2GotArgs := v2.ToSQL()
