@@ -84,7 +84,7 @@ func TestInsertMisc1(t *testing.T) {
 
 	cust := tables.CUSTOMER().As("cust")
 	i := func() InsertQuery {
-		return Qy{Log: log.New(os.Stdout, "", log.Lshortfile)}.With(A, B, C, D).InsertInto(nil)
+		return BaseQuery{Log: log.New(os.Stdout, "", log.Lshortfile)}.With(A, B, C, D).InsertInto(nil)
 	}
 
 	// v1
@@ -165,7 +165,7 @@ func TestInsertMisc1(t *testing.T) {
 	// check that the addressIDs of all the returned customers point indeed to Canada
 	addr, city, coun := tables.ADDRESS(), tables.CITY(), tables.COUNTRY()
 	var country string
-	s := Qy{Log: log.New(os.Stdout, "", log.Lshortfile)}.Select()
+	s := BaseQuery{Log: log.New(os.Stdout, "", log.Lshortfile)}.Select()
 	err = s.From(addr).
 		Join(city, city.CITY_ID.Eq(addr.CITY_ID)).
 		Join(coun, coun.COUNTRY_ID.Eq(city.COUNTRY_ID)).
@@ -178,7 +178,7 @@ func TestInsertMisc1(t *testing.T) {
 			if country != "Canada" {
 				t.Errorf("expected every country returned to be 'Canada'")
 			}
-		}).FetchDB(db)
+		}).Fetch(db)
 	is.NoErr(err)
 
 	v2GotQuery, v2GotArgs := v2.ToSQL()

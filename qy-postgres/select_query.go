@@ -305,17 +305,12 @@ func (q SelectQuery) SelectRowx(mapper func(Row)) SelectQuery {
 	return q
 }
 
-func (q SelectQuery) Fetch() error {
+func (q SelectQuery) Fetch(db qx.DB) error {
 	q.LogSkip += 1
-	return q.FetchDB(nil)
+	return q.FetchContext(nil, db)
 }
 
-func (q SelectQuery) FetchDB(db qx.DB) error {
-	q.LogSkip += 1
-	return q.FetchDBContext(nil, db)
-}
-
-func (q SelectQuery) FetchDBContext(ctx context.Context, db qx.DB) (err error) {
+func (q SelectQuery) FetchContext(ctx context.Context, db qx.DB) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			switch v := r.(type) {

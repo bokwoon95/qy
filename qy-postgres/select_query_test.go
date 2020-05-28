@@ -19,7 +19,7 @@ func TestSelectQuery_Get(t *testing.T) {
 		wantArgs    []interface{}
 	}
 	s := func() SelectQuery {
-		return Qy{Log: log.New(os.Stdout, "", log.Lshortfile)}.Select()
+		return BaseQuery{Log: log.New(os.Stdout, "", log.Lshortfile)}.Select()
 	}
 	tests := []TT{
 		{
@@ -51,7 +51,7 @@ func TestSelectQuery_Get(t *testing.T) {
 }
 
 func TestSelectQuery_With(t *testing.T) {
-	q := Qy{Log: log.New(os.Stdout, "", log.Lshortfile)}.Select()
+	q := BaseQuery{Log: log.New(os.Stdout, "", log.Lshortfile)}.Select()
 	wantQuery, wantArgs := "", []interface{}{}
 
 	apac_customers := qx.NewCTE("apac_customers", func() qx.Query {
@@ -131,7 +131,7 @@ func TestSelectQuery_Select(t *testing.T) {
 		wantArgs    []interface{}
 	}
 	s := func() SelectQuery {
-		return Qy{Log: log.New(os.Stdout, "", log.Lshortfile)}.Select()
+		return BaseQuery{Log: log.New(os.Stdout, "", log.Lshortfile)}.Select()
 	}
 	tests := []TT{
 		func() TT {
@@ -190,7 +190,7 @@ func TestSelectQuery_From(t *testing.T) {
 		wantArgs    []interface{}
 	}
 	s := func() SelectQuery {
-		return Qy{Log: log.New(os.Stdout, "", log.Lshortfile)}.Select()
+		return BaseQuery{Log: log.New(os.Stdout, "", log.Lshortfile)}.Select()
 	}
 	tests := []TT{
 		func() TT {
@@ -228,7 +228,7 @@ func TestSelectQuery_Joins(t *testing.T) {
 		wantArgs    []interface{}
 	}
 	s := func() SelectQuery {
-		return Qy{Log: log.New(os.Stdout, "", log.Lshortfile)}.Select()
+		return BaseQuery{Log: log.New(os.Stdout, "", log.Lshortfile)}.Select()
 	}
 	tests := []TT{
 		func() TT {
@@ -303,7 +303,7 @@ func TestSelectQuery_Where(t *testing.T) {
 		wantArgs    []interface{}
 	}
 	s := func() SelectQuery {
-		return Qy{Log: log.New(os.Stdout, "", log.Lshortfile)}.Select()
+		return BaseQuery{Log: log.New(os.Stdout, "", log.Lshortfile)}.Select()
 	}
 	tests := []TT{
 		func() TT {
@@ -381,7 +381,7 @@ func TestSelectQuery_GroupBy(t *testing.T) {
 		wantArgs    []interface{}
 	}
 	s := func() SelectQuery {
-		return Qy{Log: log.New(os.Stdout, "", log.Lshortfile)}.Select()
+		return BaseQuery{Log: log.New(os.Stdout, "", log.Lshortfile)}.Select()
 	}
 	tests := []TT{
 		func() TT {
@@ -412,7 +412,7 @@ func TestSelectQuery_Having(t *testing.T) {
 		wantArgs    []interface{}
 	}
 	s := func() SelectQuery {
-		return Qy{Log: log.New(os.Stdout, "", log.Lshortfile)}.Select()
+		return BaseQuery{Log: log.New(os.Stdout, "", log.Lshortfile)}.Select()
 	}
 	tests := []TT{
 		func() TT {
@@ -490,7 +490,7 @@ func TestSelectQuery_OrderBy(t *testing.T) {
 		wantArgs    []interface{}
 	}
 	s := func() SelectQuery {
-		return Qy{Log: log.New(os.Stdout, "", log.Lshortfile)}.Select()
+		return BaseQuery{Log: log.New(os.Stdout, "", log.Lshortfile)}.Select()
 	}
 	tests := []TT{
 		func() TT {
@@ -540,7 +540,7 @@ func TestSelectQuery_Limit_Offset(t *testing.T) {
 		wantArgs    []interface{}
 	}
 	s := func() SelectQuery {
-		return Qy{Log: log.New(os.Stdout, "", log.Lshortfile)}.Select()
+		return BaseQuery{Log: log.New(os.Stdout, "", log.Lshortfile)}.Select()
 	}
 	tests := []TT{
 		func() TT {

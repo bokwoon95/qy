@@ -111,46 +111,46 @@ func Queryf(format string, values ...interface{}) qx.CustomQuery {
 	}
 }
 
-type Qy struct {
+type BaseQuery struct {
 	DB   qx.DB
 	Log  qx.Logger
 	CTEs qx.CTEs
 }
 
-func WithLog(logger qx.Logger) Qy {
-	return Qy{
+func WithLog(logger qx.Logger) BaseQuery {
+	return BaseQuery{
 		Log: logger,
 	}
 }
 
-func WithDB(db qx.DB) Qy {
-	return Qy{
+func WithDB(db qx.DB) BaseQuery {
+	return BaseQuery{
 		DB: db,
 	}
 }
 
-func With(CTEs ...qx.CTE) Qy {
-	return Qy{
+func With(CTEs ...qx.CTE) BaseQuery {
+	return BaseQuery{
 		CTEs: CTEs,
 	}
 }
 
-func (qy Qy) WithLog(logger qx.Logger) Qy {
+func (qy BaseQuery) WithLog(logger qx.Logger) BaseQuery {
 	qy.Log = logger
 	return qy
 }
 
-func (qy Qy) WithDB(db qx.DB) Qy {
+func (qy BaseQuery) WithDB(db qx.DB) BaseQuery {
 	qy.DB = db
 	return qy
 }
 
-func (qy Qy) With(CTEs ...qx.CTE) Qy {
+func (qy BaseQuery) With(CTEs ...qx.CTE) BaseQuery {
 	qy.CTEs = CTEs
 	return qy
 }
 
-func (qy Qy) From(table qx.Table) SelectQuery {
+func (qy BaseQuery) From(table qx.Table) SelectQuery {
 	return SelectQuery{
 		FromTable: table,
 		Alias:     qx.RandomString(8),
@@ -160,7 +160,7 @@ func (qy Qy) From(table qx.Table) SelectQuery {
 	}
 }
 
-func (qy Qy) Select(fields ...qx.Field) SelectQuery {
+func (qy BaseQuery) Select(fields ...qx.Field) SelectQuery {
 	return SelectQuery{
 		SelectFields: fields,
 		Alias:        qx.RandomString(8),
@@ -170,7 +170,7 @@ func (qy Qy) Select(fields ...qx.Field) SelectQuery {
 	}
 }
 
-func (qy Qy) SelectDistinct(fields ...qx.Field) SelectQuery {
+func (qy BaseQuery) SelectDistinct(fields ...qx.Field) SelectQuery {
 	return SelectQuery{
 		SelectType:   qx.SelectTypeDistinct,
 		SelectFields: fields,
@@ -181,7 +181,7 @@ func (qy Qy) SelectDistinct(fields ...qx.Field) SelectQuery {
 	}
 }
 
-func (qy Qy) SelectDistinctOn(distinctFields ...qx.Field) func(...qx.Field) SelectQuery {
+func (qy BaseQuery) SelectDistinctOn(distinctFields ...qx.Field) func(...qx.Field) SelectQuery {
 	return func(fields ...qx.Field) SelectQuery {
 		return SelectQuery{
 			SelectType:   qx.SelectTypeDistinctOn,
@@ -195,7 +195,7 @@ func (qy Qy) SelectDistinctOn(distinctFields ...qx.Field) func(...qx.Field) Sele
 	}
 }
 
-func (qy Qy) Selectx(mapper func(Row), accumulator func()) SelectQuery {
+func (qy BaseQuery) Selectx(mapper func(Row), accumulator func()) SelectQuery {
 	return SelectQuery{
 		Mapper:      mapper,
 		Accumulator: accumulator,
@@ -206,7 +206,7 @@ func (qy Qy) Selectx(mapper func(Row), accumulator func()) SelectQuery {
 	}
 }
 
-func (qy Qy) SelectRowx(mapper func(Row)) SelectQuery {
+func (qy BaseQuery) SelectRowx(mapper func(Row)) SelectQuery {
 	return SelectQuery{
 		Mapper: mapper,
 		Alias:  qx.RandomString(8),
@@ -216,7 +216,7 @@ func (qy Qy) SelectRowx(mapper func(Row)) SelectQuery {
 	}
 }
 
-func (qy Qy) InsertInto(table qx.BaseTable) InsertQuery {
+func (qy BaseQuery) InsertInto(table qx.BaseTable) InsertQuery {
 	return InsertQuery{
 		IntoTable: table,
 		Alias:     qx.RandomString(8),
@@ -226,7 +226,7 @@ func (qy Qy) InsertInto(table qx.BaseTable) InsertQuery {
 	}
 }
 
-func (qy Qy) Update(table qx.BaseTable) UpdateQuery {
+func (qy BaseQuery) Update(table qx.BaseTable) UpdateQuery {
 	return UpdateQuery{
 		UpdateTable: table,
 		Alias:       qx.RandomString(8),
@@ -236,7 +236,7 @@ func (qy Qy) Update(table qx.BaseTable) UpdateQuery {
 	}
 }
 
-func (qy Qy) DeleteFrom(table qx.BaseTable) DeleteQuery {
+func (qy BaseQuery) DeleteFrom(table qx.BaseTable) DeleteQuery {
 	return DeleteQuery{
 		FromTable: table,
 		Alias:     qx.RandomString(8),
