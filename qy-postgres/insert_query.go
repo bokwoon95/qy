@@ -242,17 +242,12 @@ func (q InsertQuery) ReturningRowx(mapper func(Row)) InsertQuery {
 	return q
 }
 
-func (q InsertQuery) Fetch() error {
+func (q InsertQuery) Fetch(db qx.DB) (err error) {
 	q.LogSkip += 1
-	return q.FetchDB(nil)
+	return q.FetchContext(nil, db)
 }
 
-func (q InsertQuery) FetchDB(db qx.DB) (err error) {
-	q.LogSkip += 1
-	return q.FetchDBContext(nil, db)
-}
-
-func (q InsertQuery) FetchDBContext(ctx context.Context, db qx.DB) (err error) {
+func (q InsertQuery) FetchContext(ctx context.Context, db qx.DB) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			switch v := r.(type) {

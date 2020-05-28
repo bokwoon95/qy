@@ -159,7 +159,7 @@ func TestInsertMisc1(t *testing.T) {
 	}, func() {
 		addressIDs = append(addressIDs, int(addressID.Int64))
 		customers = append(customers, customer)
-	}).FetchDB(db)
+	}).Fetch(db)
 	is.NoErr(err)
 	fmt.Println(customers)
 	// check that the addressIDs of all the returned customers point indeed to Canada
