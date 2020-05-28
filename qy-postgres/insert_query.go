@@ -137,12 +137,11 @@ func (q InsertQuery) ToSQL() (string, []interface{}) {
 	return query, args
 }
 
-func NewInsertQuery() InsertQuery {
-	return InsertQuery{Alias: qx.RandomString(8)}
-}
-
 func InsertInto(table qx.BaseTable) InsertQuery {
-	return NewInsertQuery().InsertInto(table)
+	return InsertQuery{
+		IntoTable: table,
+		Alias:     qx.RandomString(8),
+	}
 }
 
 func (q InsertQuery) With(ctes ...qx.CTE) InsertQuery {

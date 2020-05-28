@@ -84,9 +84,7 @@ func TestInsertMisc1(t *testing.T) {
 
 	cust := tables.CUSTOMER().As("cust")
 	i := func() InsertQuery {
-		q := NewInsertQuery().With(A, B, C, D)
-		q.Log = log.New(os.Stdout, "", log.Lshortfile)
-		return q
+		return Qy{Log: log.New(os.Stdout, "", log.Lshortfile)}.With(A, B, C, D).InsertInto(nil)
 	}
 
 	// v1
