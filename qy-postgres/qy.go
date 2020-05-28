@@ -117,6 +117,24 @@ type Qy struct {
 	CTEs qx.CTEs
 }
 
+func WithLog(logger qx.Logger) Qy {
+	return Qy{
+		Log: logger,
+	}
+}
+
+func WithDB(db qx.DB) Qy {
+	return Qy{
+		DB: db,
+	}
+}
+
+func With(CTEs ...qx.CTE) Qy {
+	return Qy{
+		CTEs: CTEs,
+	}
+}
+
 func (qy Qy) WithLog(logger qx.Logger) Qy {
 	qy.Log = logger
 	return qy
@@ -127,8 +145,8 @@ func (qy Qy) WithDB(db qx.DB) Qy {
 	return qy
 }
 
-func (qy Qy) With(ctes ...qx.CTE) Qy {
-	qy.CTEs = ctes
+func (qy Qy) With(CTEs ...qx.CTE) Qy {
+	qy.CTEs = CTEs
 	return qy
 }
 
@@ -190,11 +208,11 @@ func (qy Qy) Selectx(mapper func(Row), accumulator func()) SelectQuery {
 
 func (qy Qy) SelectRowx(mapper func(Row)) SelectQuery {
 	return SelectQuery{
-		Mapper:     mapper,
-		Alias:      qx.RandomString(8),
-		CTEs:       qy.CTEs,
-		DB:         qy.DB,
-		Log:        qy.Log,
+		Mapper: mapper,
+		Alias:  qx.RandomString(8),
+		CTEs:   qy.CTEs,
+		DB:     qy.DB,
+		Log:    qy.Log,
 	}
 }
 
