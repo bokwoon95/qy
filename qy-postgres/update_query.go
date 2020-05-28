@@ -124,12 +124,11 @@ func (q UpdateQuery) As(alias string) UpdateQuery {
 	return q
 }
 
-func NewUpdateQuery() UpdateQuery {
-	return UpdateQuery{Alias: qx.RandomString(8)}
-}
-
-func Update(tbl qx.BaseTable) UpdateQuery {
-	return NewUpdateQuery().Update(tbl)
+func Update(table qx.BaseTable) UpdateQuery {
+	return UpdateQuery{
+		UpdateTable: table,
+		Alias:       qx.RandomString(8),
+	}
 }
 
 func (q UpdateQuery) With(cteList ...qx.CTE) UpdateQuery {
