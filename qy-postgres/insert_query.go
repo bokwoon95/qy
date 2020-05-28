@@ -259,7 +259,10 @@ func (q InsertQuery) FetchContext(ctx context.Context, db qx.DB) (err error) {
 		}
 	}()
 	if db == nil {
-		return errors.New("DB cannot be nil")
+		if q.DB == nil {
+			return errors.New("DB cannot be nil")
+		}
+		db = q.DB
 	}
 	r := &QyRow{QxRow: &qx.QxRow{}}
 	if q.Mapper != nil {
@@ -318,7 +321,10 @@ func (q InsertQuery) ExecContext(ctx context.Context, db qx.DB) (sql.Result, err
 	var res sql.Result
 	var err error
 	if db == nil {
-		return res, errors.New("DB cannot be nil")
+		if q.DB == nil {
+			return res, errors.New("DB cannot be nil")
+		}
+		db = q.DB
 	}
 	q.LogSkip += 1
 	query, args := q.ToSQL()
