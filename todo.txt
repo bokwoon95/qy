@@ -1,3 +1,5 @@
+TODO::finalize Logger interface (probably a functional QueryOption)
+TODO::convert Queries to pointer receiver
 
 Tests for qx
 Tests for qy

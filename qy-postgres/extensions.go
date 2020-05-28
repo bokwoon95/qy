@@ -8,10 +8,10 @@ import (
 
 func Exists(query qx.Query, db qx.Queryer, logger qx.Logger) (exists bool, err error) {
 	switch q := query.(type) {
-	case SelectQuery:
+	case *SelectQuery:
 		q.SelectFields = []qx.Field{Fieldf("1")}
 		query = q
-	case InsertQuery:
+	case *InsertQuery:
 		q.ReturningFields = []qx.Field{Fieldf("1")}
 		query = q
 	case UpdateQuery:

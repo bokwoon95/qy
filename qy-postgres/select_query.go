@@ -44,7 +44,7 @@ type SelectQuery struct {
 	LogSkip int
 }
 
-func (q SelectQuery) ToSQL() (string, []interface{}) {
+func (q *SelectQuery) ToSQL() (string, []interface{}) {
 	var buf = &strings.Builder{}
 	var args []interface{}
 	// WITH
@@ -130,66 +130,66 @@ func (q SelectQuery) ToSQL() (string, []interface{}) {
 	return query, args
 }
 
-func NewSelectQuery() SelectQuery {
-	q := SelectQuery{Alias: qx.RandomString(8)}
+func NewSelectQuery() *SelectQuery {
+	q := &SelectQuery{Alias: qx.RandomString(8)}
 	return q
 }
 
-func From(table qx.Table) SelectQuery {
+func From(table qx.Table) *SelectQuery {
 	return NewSelectQuery().From(table)
 }
 
-func Select(fields ...qx.Field) SelectQuery {
+func Select(fields ...qx.Field) *SelectQuery {
 	return NewSelectQuery().Select(fields...)
 }
 
-func SelectDistinct(fields ...qx.Field) SelectQuery {
+func SelectDistinct(fields ...qx.Field) *SelectQuery {
 	return NewSelectQuery().SelectDistinct(fields...)
 }
 
-func SelectDistinctOn(distinctFields ...qx.Field) func(...qx.Field) SelectQuery {
-	return func(fields ...qx.Field) SelectQuery {
+func SelectDistinctOn(distinctFields ...qx.Field) func(...qx.Field) *SelectQuery {
+	return func(fields ...qx.Field) *SelectQuery {
 		return NewSelectQuery().SelectDistinctOn(distinctFields...)(fields...)
 	}
 }
 
-func Selectx(mapper func(Row), accumulator func()) SelectQuery {
+func Selectx(mapper func(Row), accumulator func()) *SelectQuery {
 	return NewSelectQuery().Selectx(mapper, accumulator)
 }
 
-func SelectRowx(mapper func(Row)) SelectQuery {
+func SelectRowx(mapper func(Row)) *SelectQuery {
 	return NewSelectQuery().SelectRowx(mapper)
 }
 
-func (q SelectQuery) With(ctes ...qx.CTE) SelectQuery {
+func (q *SelectQuery) With(ctes ...qx.CTE) *SelectQuery {
 	q.CTEs = append(q.CTEs, ctes...)
 	return q
 }
 
-func (q SelectQuery) Select(fields ...qx.Field) SelectQuery {
+func (q *SelectQuery) Select(fields ...qx.Field) *SelectQuery {
 	q.SelectFields = append(q.SelectFields, fields...)
 	return q
 }
 
-func (q SelectQuery) SelectDistinct(fields ...qx.Field) SelectQuery {
+func (q *SelectQuery) SelectDistinct(fields ...qx.Field) *SelectQuery {
 	q.SelectType = qx.SelectTypeDistinct
 	return q.Select(fields...)
 }
 
-func (q SelectQuery) SelectDistinctOn(distinctFields ...qx.Field) func(...qx.Field) SelectQuery {
-	return func(fields ...qx.Field) SelectQuery {
+func (q *SelectQuery) SelectDistinctOn(distinctFields ...qx.Field) func(...qx.Field) *SelectQuery {
+	return func(fields ...qx.Field) *SelectQuery {
 		q.SelectType = qx.SelectTypeDistinctOn
 		q.DistinctOn = append(q.DistinctOn, distinctFields...)
 		return q.Select(fields...)
 	}
 }
 
-func (q SelectQuery) From(table qx.Table) SelectQuery {
+func (q *SelectQuery) From(table qx.Table) *SelectQuery {
 	q.FromTable = table
 	return q
 }
 
-func (q SelectQuery) Join(table qx.Table, predicate qx.Predicate, predicates ...qx.Predicate) SelectQuery {
+func (q *SelectQuery) Join(table qx.Table, predicate qx.Predicate, predicates ...qx.Predicate) *SelectQuery {
 	predicates = append([]qx.Predicate{predicate}, predicates...)
 	q.JoinGroups = append(q.JoinGroups, qx.JoinTable{
 		JoinType:     qx.JoinTypeDefault,
@@ -199,7 +199,7 @@ func (q SelectQuery) Join(table qx.Table, predicate qx.Predicate, predicates ...
 	return q
 }
 
-func (q SelectQuery) LeftJoin(table qx.Table, predicate qx.Predicate, predicates ...qx.Predicate) SelectQuery {
+func (q *SelectQuery) LeftJoin(table qx.Table, predicate qx.Predicate, predicates ...qx.Predicate) *SelectQuery {
 	predicates = append([]qx.Predicate{predicate}, predicates...)
 	q.JoinGroups = append(q.JoinGroups, qx.JoinTable{
 		JoinType:     qx.JoinTypeLeft,
@@ -209,7 +209,7 @@ func (q SelectQuery) LeftJoin(table qx.Table, predicate qx.Predicate, predicates
 	return q
 }
 
-func (q SelectQuery) RightJoin(table qx.Table, predicate qx.Predicate, predicates ...qx.Predicate) SelectQuery {
+func (q *SelectQuery) RightJoin(table qx.Table, predicate qx.Predicate, predicates ...qx.Predicate) *SelectQuery {
 	predicates = append([]qx.Predicate{predicate}, predicates...)
 	q.JoinGroups = append(q.JoinGroups, qx.JoinTable{
 		JoinType:     qx.JoinTypeRight,
@@ -219,7 +219,7 @@ func (q SelectQuery) RightJoin(table qx.Table, predicate qx.Predicate, predicate
 	return q
 }
 
-func (q SelectQuery) FullJoin(table qx.Table, predicate qx.Predicate, predicates ...qx.Predicate) SelectQuery {
+func (q *SelectQuery) FullJoin(table qx.Table, predicate qx.Predicate, predicates ...qx.Predicate) *SelectQuery {
 	predicates = append([]qx.Predicate{predicate}, predicates...)
 	q.JoinGroups = append(q.JoinGroups, qx.JoinTable{
 		JoinType:     qx.JoinTypeFull,
@@ -229,7 +229,7 @@ func (q SelectQuery) FullJoin(table qx.Table, predicate qx.Predicate, predicates
 	return q
 }
 
-func (q SelectQuery) CrossJoin(table qx.Table) SelectQuery {
+func (q *SelectQuery) CrossJoin(table qx.Table) *SelectQuery {
 	q.JoinGroups = append(q.JoinGroups, qx.JoinTable{
 		JoinType: qx.JoinTypeCross,
 		Table:    table,
@@ -237,27 +237,27 @@ func (q SelectQuery) CrossJoin(table qx.Table) SelectQuery {
 	return q
 }
 
-func (q SelectQuery) Where(predicates ...qx.Predicate) SelectQuery {
+func (q *SelectQuery) Where(predicates ...qx.Predicate) *SelectQuery {
 	q.WherePredicates.Predicates = append(q.WherePredicates.Predicates, predicates...)
 	return q
 }
 
-func (q SelectQuery) GroupBy(fields ...qx.Field) SelectQuery {
+func (q *SelectQuery) GroupBy(fields ...qx.Field) *SelectQuery {
 	q.GroupByFields = append(q.GroupByFields, fields...)
 	return q
 }
 
-func (q SelectQuery) Having(predicates ...qx.Predicate) SelectQuery {
+func (q *SelectQuery) Having(predicates ...qx.Predicate) *SelectQuery {
 	q.HavingPredicates.Predicates = append(q.HavingPredicates.Predicates, predicates...)
 	return q
 }
 
-func (q SelectQuery) OrderBy(fields ...qx.Field) SelectQuery {
+func (q *SelectQuery) OrderBy(fields ...qx.Field) *SelectQuery {
 	q.OrderByFields = append(q.OrderByFields, fields...)
 	return q
 }
 
-func (q SelectQuery) Limit(limit int) SelectQuery {
+func (q *SelectQuery) Limit(limit int) *SelectQuery {
 	if limit < 0 {
 		limit = -limit
 	}
@@ -266,7 +266,7 @@ func (q SelectQuery) Limit(limit int) SelectQuery {
 	return q
 }
 
-func (q SelectQuery) Offset(offset int) SelectQuery {
+func (q *SelectQuery) Offset(offset int) *SelectQuery {
 	if offset < 0 {
 		offset = -offset
 	}
@@ -275,18 +275,18 @@ func (q SelectQuery) Offset(offset int) SelectQuery {
 	return q
 }
 
-func (q SelectQuery) Selectx(mapper func(Row), accumulator func()) SelectQuery {
+func (q *SelectQuery) Selectx(mapper func(Row), accumulator func()) *SelectQuery {
 	q.Mapper = mapper
 	q.Accumulator = accumulator
 	return q
 }
 
-func (q SelectQuery) SelectRowx(mapper func(Row)) SelectQuery {
+func (q *SelectQuery) SelectRowx(mapper func(Row)) *SelectQuery {
 	q.Mapper = mapper
 	return q
 }
 
-func (q SelectQuery) Exec(db qx.Queryer) (err error) {
+func (q *SelectQuery) Exec(db qx.Queryer) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			switch v := r.(type) {
@@ -347,30 +347,30 @@ func (q SelectQuery) Exec(db qx.Queryer) (err error) {
 	return r.QxRow.Rows.Err()
 }
 
-func (q SelectQuery) ExecWithLog(db qx.Queryer, log qx.Logger) error {
+func (q *SelectQuery) ExecWithLog(db qx.Queryer, log qx.Logger) error {
 	q.LogSkip += 1
 	q.Log = log
 	return q.Exec(db)
 }
 
-func (q SelectQuery) As(alias string) SelectQuery {
+func (q *SelectQuery) As(alias string) *SelectQuery {
 	q.Alias = alias
 	return q
 }
 
-func (q SelectQuery) Get(fieldName string) qx.CustomField {
+func (q *SelectQuery) Get(fieldName string) qx.CustomField {
 	return Fieldf(q.Alias + "." + fieldName)
 }
 
-func (q SelectQuery) GetAlias() string {
+func (q *SelectQuery) GetAlias() string {
 	return q.Alias
 }
 
-func (q SelectQuery) GetName() string {
+func (q *SelectQuery) GetName() string {
 	return ""
 }
 
-func (q SelectQuery) NestThis() qx.Query {
+func (q *SelectQuery) NestThis() qx.Query {
 	q.Nested = true
 	return q
 }

@@ -18,18 +18,21 @@ func TestSelectQuery_Get(t *testing.T) {
 		wantQuery   string
 		wantArgs    []interface{}
 	}
-	baseSelect := NewSelectQuery()
-	baseSelect.Log = log.New(os.Stdout, "", log.Lshortfile)
+	s := func() *SelectQuery {
+		sel := NewSelectQuery()
+		sel.Log = log.New(os.Stdout, "", log.Lshortfile)
+		return sel
+	}
 	tests := []TT{
 		{
 			"SelectQuery Get (explicit alias)",
-			baseSelect.From(tables.CUSTOMER()).As("selected_customers").Get("first_name"),
+			s().From(tables.CUSTOMER()).As("selected_customers").Get("first_name"),
 			"selected_customers.first_name",
 			nil,
 		},
 		func() TT {
 			DESCRIPTION := "SelectQuery Get (implicit alias)"
-			q := baseSelect.From(tables.CUSTOMER())
+			q := s().From(tables.CUSTOMER())
 			alias := q.GetAlias()
 			if alias == "" {
 				t.Fatalf("an alias should have automatically been assigned to SelectQuery, found empty alias")
@@ -125,44 +128,48 @@ func TestSelectQuery_With(t *testing.T) {
 func TestSelectQuery_Select(t *testing.T) {
 	type TT struct {
 		DESCRIPTION string
-		q           SelectQuery
+		q           *SelectQuery
 		wantQuery   string
 		wantArgs    []interface{}
 	}
-	baseSelect := NewSelectQuery()
+	s := func() *SelectQuery {
+		sel := NewSelectQuery()
+		sel.Log = log.New(os.Stdout, "", log.Lshortfile)
+		return sel
+	}
 	tests := []TT{
 		func() TT {
 			DESCRIPTION := "basic select"
 			cust := tables.CUSTOMER()
-			q := baseSelect.Select(cust.FIRST_NAME, cust.LAST_NAME, cust.EMAIL)
+			q := s().Select(cust.FIRST_NAME, cust.LAST_NAME, cust.EMAIL)
 			wantQuery := "SELECT customer.first_name, customer.last_name, customer.email"
 			return TT{DESCRIPTION, q, wantQuery, nil}
 		}(),
 		func() TT {
 			DESCRIPTION := "multiple select calls also work"
 			cust := tables.CUSTOMER()
-			q := baseSelect.Select(cust.FIRST_NAME).Select(cust.LAST_NAME).Select(cust.EMAIL)
+			q := s().Select(cust.FIRST_NAME).Select(cust.LAST_NAME).Select(cust.EMAIL)
 			wantQuery := "SELECT customer.first_name, customer.last_name, customer.email"
 			return TT{DESCRIPTION, q, wantQuery, nil}
 		}(),
 		func() TT {
 			DESCRIPTION := "column aliases work"
 			acto := tables.ACTOR()
-			q := baseSelect.Select(acto.FIRST_NAME, acto.ACTOR_ID.As("id"), acto.LAST_UPDATE.As("update"))
+			q := s().Select(acto.FIRST_NAME, acto.ACTOR_ID.As("id"), acto.LAST_UPDATE.As("update"))
 			wantQuery := "SELECT actor.first_name, actor.actor_id AS id, actor.last_update AS update"
 			return TT{DESCRIPTION, q, wantQuery, nil}
 		}(),
 		func() TT {
 			DESCRIPTION := "select distinct"
 			cust := tables.CUSTOMER().As("cust")
-			q := baseSelect.SelectDistinct(cust.FIRST_NAME, cust.EMAIL)
+			q := s().SelectDistinct(cust.FIRST_NAME, cust.EMAIL)
 			wantQuery := "SELECT DISTINCT cust.first_name, cust.email"
 			return TT{DESCRIPTION, q, wantQuery, nil}
 		}(),
 		func() TT {
 			DESCRIPTION := "select distinct on"
 			cust := tables.CUSTOMER().As("cust")
-			q := baseSelect.SelectDistinctOn(cust.EMAIL, cust.STORE_ID)(cust.FIRST_NAME, cust.LAST_NAME)
+			q := s().SelectDistinctOn(cust.EMAIL, cust.STORE_ID)(cust.FIRST_NAME, cust.LAST_NAME)
 			wantQuery := "SELECT DISTINCT ON (cust.email, cust.store_id) cust.first_name, cust.last_name"
 			return TT{DESCRIPTION, q, wantQuery, nil}
 		}(),
@@ -182,23 +189,27 @@ func TestSelectQuery_Select(t *testing.T) {
 func TestSelectQuery_From(t *testing.T) {
 	type TT struct {
 		DESCRIPTION string
-		q           SelectQuery
+		q           *SelectQuery
 		wantQuery   string
 		wantArgs    []interface{}
 	}
-	baseSelect := NewSelectQuery()
+	s := func() *SelectQuery {
+		sel := NewSelectQuery()
+		sel.Log = log.New(os.Stdout, "", log.Lshortfile)
+		return sel
+	}
 	tests := []TT{
 		func() TT {
 			DESCRIPTION := "no table alias"
 			cust := tables.CUSTOMER()
-			q := baseSelect.From(cust).Select(cust.CUSTOMER_ID)
+			q := s().From(cust).Select(cust.CUSTOMER_ID)
 			wantQuery := "SELECT customer.customer_id FROM customer"
 			return TT{DESCRIPTION, q, wantQuery, nil}
 		}(),
 		func() TT {
 			DESCRIPTION := "with table alias"
 			cust := tables.CUSTOMER().As("cust")
-			q := baseSelect.From(cust).Select(cust.CUSTOMER_ID)
+			q := s().From(cust).Select(cust.CUSTOMER_ID)
 			wantQuery := "SELECT cust.customer_id FROM customer AS cust"
 			return TT{DESCRIPTION, q, wantQuery, nil}
 		}(),
@@ -218,17 +229,20 @@ func TestSelectQuery_From(t *testing.T) {
 func TestSelectQuery_Joins(t *testing.T) {
 	type TT struct {
 		DESCRIPTION string
-		q           SelectQuery
+		q           *SelectQuery
 		wantQuery   string
 		wantArgs    []interface{}
 	}
-	baseSelect := NewSelectQuery()
-	baseSelect.Log = log.New(os.Stdout, "", log.Lshortfile)
+	s := func() *SelectQuery {
+		sel := NewSelectQuery()
+		sel.Log = log.New(os.Stdout, "", log.Lshortfile)
+		return sel
+	}
 	tests := []TT{
 		func() TT {
 			DESCRIPTION := "all joinGroups"
 			cust, addr := tables.CUSTOMER().As("cust"), tables.ADDRESS().As("addr")
-			q := baseSelect.From(cust).
+			q := s().From(cust).
 				Join(addr, addr.ADDRESS_ID.Eq(cust.ADDRESS_ID)).
 				LeftJoin(addr, addr.ADDRESS_ID.Eq(cust.ADDRESS_ID)).
 				RightJoin(addr, addr.ADDRESS_ID.Eq(cust.ADDRESS_ID)).
@@ -244,7 +258,7 @@ func TestSelectQuery_Joins(t *testing.T) {
 			DESCRIPTION := "joining a subquery with explicit alias"
 			cust, addr := tables.CUSTOMER().As("cust"), tables.ADDRESS().As("addr")
 			subquery := Select(cust.ADDRESS_ID).From(cust).Where(cust.STORE_ID.GtInt(4)).As("subquery")
-			q := baseSelect.From(addr).Join(subquery, subquery.Get("address_id").Eq(addr.ADDRESS_ID))
+			q := s().From(addr).Join(subquery, subquery.Get("address_id").Eq(addr.ADDRESS_ID))
 			wantQuery := "FROM address AS addr" +
 				" JOIN (SELECT cust.address_id FROM customer AS cust WHERE cust.store_id > $1) AS subquery" +
 				" ON subquery.address_id = addr.address_id"
@@ -254,7 +268,7 @@ func TestSelectQuery_Joins(t *testing.T) {
 			DESCRIPTION := "joining a subquery with implicit alias"
 			cust, addr := tables.CUSTOMER().As("cust"), tables.ADDRESS().As("addr")
 			subquery := Select(cust.ADDRESS_ID).From(cust).Where(cust.STORE_ID.GtInt(4))
-			q := baseSelect.From(addr).Join(subquery, subquery.Get("address_id").Eq(addr.ADDRESS_ID))
+			q := s().From(addr).Join(subquery, subquery.Get("address_id").Eq(addr.ADDRESS_ID))
 			wantQuery := "FROM address AS addr" +
 				" JOIN (SELECT cust.address_id FROM customer AS cust WHERE cust.store_id > $1) AS " + subquery.GetAlias() +
 				" ON " + subquery.GetAlias() + ".address_id = addr.address_id"
@@ -264,7 +278,7 @@ func TestSelectQuery_Joins(t *testing.T) {
 			DESCRIPTION := "select from subquery"
 			cust := tables.CUSTOMER().As("cust")
 			subquery := Select(cust.ADDRESS_ID).From(cust).Where(cust.STORE_ID.GtInt(4)).As("sub")
-			q := baseSelect.From(subquery).Select(subquery.Get("address_id"))
+			q := s().From(subquery).Select(subquery.Get("address_id"))
 			wantQuery := "SELECT sub.address_id FROM (SELECT cust.address_id FROM customer AS cust WHERE cust.store_id > $1) AS sub"
 			return TT{DESCRIPTION, q, wantQuery, []interface{}{4}}
 		}(),
@@ -272,7 +286,7 @@ func TestSelectQuery_Joins(t *testing.T) {
 			DESCRIPTION := "deeply nested subqueries"
 			cust := tables.CUSTOMER().As("cust")
 			subquery := Select(cust.ADDRESS_ID).From(cust).Where(cust.STORE_ID.GtInt(4)).As("sub")
-			q := baseSelect.From(subquery).Select(subquery.Get("address_id"))
+			q := s().From(subquery).Select(subquery.Get("address_id"))
 			wantQuery := "SELECT sub.address_id FROM (SELECT cust.address_id FROM customer AS cust WHERE cust.store_id > $1) AS sub"
 			return TT{DESCRIPTION, q, wantQuery, []interface{}{4}}
 		}(),
@@ -292,16 +306,20 @@ func TestSelectQuery_Joins(t *testing.T) {
 func TestSelectQuery_Where(t *testing.T) {
 	type TT struct {
 		DESCRIPTION string
-		q           SelectQuery
+		q           *SelectQuery
 		wantQuery   string
 		wantArgs    []interface{}
 	}
-	baseSelect := NewSelectQuery()
+	s := func() *SelectQuery {
+		sel := NewSelectQuery()
+		sel.Log = log.New(os.Stdout, "", log.Lshortfile)
+		return sel
+	}
 	tests := []TT{
 		func() TT {
 			DESCRIPTION := "basic where (implicit and)"
 			cust := tables.CUSTOMER()
-			q := baseSelect.Where(
+			q := s().Where(
 				cust.CUSTOMER_ID.EqInt(22),
 				cust.FIRST_NAME.ILikeString("%bob%"),
 				cust.EMAIL.IsNotNull(),
@@ -312,7 +330,7 @@ func TestSelectQuery_Where(t *testing.T) {
 		func() TT {
 			DESCRIPTION := "basic where (explicit and)"
 			cust := tables.CUSTOMER()
-			q := baseSelect.Where(
+			q := s().Where(
 				qx.And(
 					cust.CUSTOMER_ID.EqInt(22),
 					cust.FIRST_NAME.ILikeString("%bob%"),
@@ -325,7 +343,7 @@ func TestSelectQuery_Where(t *testing.T) {
 		func() TT {
 			DESCRIPTION := "basic where (explicit or)"
 			cust := tables.CUSTOMER()
-			q := baseSelect.Where(
+			q := s().Where(
 				qx.Or(
 					cust.CUSTOMER_ID.EqInt(22),
 					cust.FIRST_NAME.ILikeString("%bob%"),
@@ -338,7 +356,7 @@ func TestSelectQuery_Where(t *testing.T) {
 		func() TT {
 			DESCRIPTION := "complex predicate"
 			c1, c2 := tables.CUSTOMER().As("c1"), tables.CUSTOMER().As("c2")
-			q := baseSelect.Where(
+			q := s().Where(
 				c1.CUSTOMER_ID.EqInt(69),
 				c1.FIRST_NAME.ILikeString("%bob%"),
 				c1.EMAIL.IsNotNull(),
@@ -368,16 +386,20 @@ func TestSelectQuery_Where(t *testing.T) {
 func TestSelectQuery_GroupBy(t *testing.T) {
 	type TT struct {
 		DESCRIPTION string
-		q           SelectQuery
+		q           *SelectQuery
 		wantQuery   string
 		wantArgs    []interface{}
 	}
-	baseSelect := NewSelectQuery()
+	s := func() *SelectQuery {
+		sel := NewSelectQuery()
+		sel.Log = log.New(os.Stdout, "", log.Lshortfile)
+		return sel
+	}
 	tests := []TT{
 		func() TT {
 			DESCRIPTION := "basic group by"
 			cust := tables.CUSTOMER()
-			q := baseSelect.GroupBy(cust.CUSTOMER_ID, cust.STORE_ID, cust.ACTIVE)
+			q := s().GroupBy(cust.CUSTOMER_ID, cust.STORE_ID, cust.ACTIVE)
 			wantQuery := "GROUP BY customer.customer_id, customer.store_id, customer.active"
 			return TT{DESCRIPTION, q, wantQuery, nil}
 		}(),
@@ -397,16 +419,20 @@ func TestSelectQuery_GroupBy(t *testing.T) {
 func TestSelectQuery_Having(t *testing.T) {
 	type TT struct {
 		DESCRIPTION string
-		q           SelectQuery
+		q           *SelectQuery
 		wantQuery   string
 		wantArgs    []interface{}
 	}
-	baseSelect := NewSelectQuery()
+	s := func() *SelectQuery {
+		sel := NewSelectQuery()
+		sel.Log = log.New(os.Stdout, "", log.Lshortfile)
+		return sel
+	}
 	tests := []TT{
 		func() TT {
 			DESCRIPTION := "basic having (implicit and)"
 			cust := tables.CUSTOMER()
-			q := baseSelect.Having(
+			q := s().Having(
 				cust.CUSTOMER_ID.EqInt(22),
 				cust.FIRST_NAME.ILikeString("%bob%"),
 				cust.EMAIL.IsNotNull(),
@@ -417,7 +443,7 @@ func TestSelectQuery_Having(t *testing.T) {
 		func() TT {
 			DESCRIPTION := "basic having (explicit and)"
 			cust := tables.CUSTOMER()
-			q := baseSelect.Having(
+			q := s().Having(
 				qx.And(
 					cust.CUSTOMER_ID.EqInt(22),
 					cust.FIRST_NAME.ILikeString("%bob%"),
@@ -430,7 +456,7 @@ func TestSelectQuery_Having(t *testing.T) {
 		func() TT {
 			DESCRIPTION := "basic having (explicit or)"
 			cust := tables.CUSTOMER()
-			q := baseSelect.Having(
+			q := s().Having(
 				qx.Or(
 					cust.CUSTOMER_ID.EqInt(22),
 					cust.FIRST_NAME.ILikeString("%bob%"),
@@ -443,7 +469,7 @@ func TestSelectQuery_Having(t *testing.T) {
 		func() TT {
 			DESCRIPTION := "complex predicate"
 			c1, c2 := tables.CUSTOMER().As("c1"), tables.CUSTOMER().As("c2")
-			q := baseSelect.Having(
+			q := s().Having(
 				c1.CUSTOMER_ID.EqInt(69),
 				c1.FIRST_NAME.ILikeString("%bob%"),
 				c1.EMAIL.IsNotNull(),
@@ -473,23 +499,27 @@ func TestSelectQuery_Having(t *testing.T) {
 func TestSelectQuery_OrderBy(t *testing.T) {
 	type TT struct {
 		DESCRIPTION string
-		q           SelectQuery
+		q           *SelectQuery
 		wantQuery   string
 		wantArgs    []interface{}
 	}
-	baseSelect := NewSelectQuery()
+	s := func() *SelectQuery {
+		sel := NewSelectQuery()
+		sel.Log = log.New(os.Stdout, "", log.Lshortfile)
+		return sel
+	}
 	tests := []TT{
 		func() TT {
 			DESCRIPTION := "basic order by"
 			cust := tables.CUSTOMER().As("cust")
-			q := baseSelect.Select().OrderBy(cust.CUSTOMER_ID, cust.STORE_ID, cust.ACTIVE)
+			q := s().Select().OrderBy(cust.CUSTOMER_ID, cust.STORE_ID, cust.ACTIVE)
 			wantQuery := "ORDER BY cust.customer_id, cust.store_id, cust.active"
 			return TT{DESCRIPTION, q, wantQuery, nil}
 		}(),
 		func() TT {
 			DESCRIPTION := "Asc, Desc, NullsFirst and NullsLast"
 			cust := tables.CUSTOMER().As("cust")
-			q := baseSelect.OrderBy(
+			q := s().OrderBy(
 				cust.CUSTOMER_ID,
 				cust.CUSTOMER_ID.Asc(),
 				cust.CUSTOMER_ID.Desc(),
@@ -521,21 +551,25 @@ func TestSelectQuery_OrderBy(t *testing.T) {
 func TestSelectQuery_Limit_Offset(t *testing.T) {
 	type TT struct {
 		DESCRIPTION string
-		q           SelectQuery
+		q           *SelectQuery
 		wantQuery   string
 		wantArgs    []interface{}
 	}
-	baseSelect := NewSelectQuery()
+	s := func() *SelectQuery {
+		sel := NewSelectQuery()
+		sel.Log = log.New(os.Stdout, "", log.Lshortfile)
+		return sel
+	}
 	tests := []TT{
 		func() TT {
 			DESCRIPTION := "Limit and offset"
-			q := baseSelect.Limit(10).Offset(20)
+			q := s().Limit(10).Offset(20)
 			wantQuery := "LIMIT $1 OFFSET $2"
 			return TT{DESCRIPTION, q, wantQuery, []interface{}{uint64(10), uint64(20)}}
 		}(),
 		func() TT {
 			DESCRIPTION := "negative numbers get abs-ed"
-			q := baseSelect.Limit(-22).Offset(-34)
+			q := s().Limit(-22).Offset(-34)
 			wantQuery := "LIMIT $1 OFFSET $2"
 			return TT{DESCRIPTION, q, wantQuery, []interface{}{uint64(22), uint64(34)}}
 		}(),

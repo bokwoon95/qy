@@ -40,7 +40,7 @@ type InsertQuery struct {
 	LogSkip int
 }
 
-func (q InsertQuery) ToSQL() (string, []interface{}) {
+func (q *InsertQuery) ToSQL() (string, []interface{}) {
 	var buf = &strings.Builder{}
 	var args []interface{}
 	var excludeTableQualifiers []string
@@ -135,35 +135,35 @@ func (q InsertQuery) ToSQL() (string, []interface{}) {
 	return query, args
 }
 
-func NewInsertQuery() InsertQuery {
-	return InsertQuery{Alias: qx.RandomString(8)}
+func NewInsertQuery() *InsertQuery {
+	return &InsertQuery{Alias: qx.RandomString(8)}
 }
 
-func InsertInto(table qx.BaseTable) InsertQuery {
+func InsertInto(table qx.BaseTable) *InsertQuery {
 	return NewInsertQuery().InsertInto(table)
 }
 
-func (q InsertQuery) With(ctes ...qx.CTE) InsertQuery {
+func (q *InsertQuery) With(ctes ...qx.CTE) *InsertQuery {
 	q.CTEs = append(q.CTEs, ctes...)
 	return q
 }
 
-func (q InsertQuery) InsertInto(table qx.BaseTable) InsertQuery {
+func (q *InsertQuery) InsertInto(table qx.BaseTable) *InsertQuery {
 	q.IntoTable = table
 	return q
 }
 
-func (q InsertQuery) Columns(fields ...qx.Field) InsertQuery {
+func (q *InsertQuery) Columns(fields ...qx.Field) *InsertQuery {
 	q.InsertFields = append(q.InsertFields, fields...)
 	return q
 }
 
-func (q InsertQuery) Values(values ...interface{}) InsertQuery {
+func (q *InsertQuery) Values(values ...interface{}) *InsertQuery {
 	q.ValuesList = append(q.ValuesList, values)
 	return q
 }
 
-func (q InsertQuery) InsertRow(sets ...qx.FieldValueSet) InsertQuery {
+func (q *InsertQuery) InsertRow(sets ...qx.FieldValueSet) *InsertQuery {
 	fields, values := make([]qx.Field, len(sets)), make([]interface{}, len(sets))
 	for i := range sets {
 		fields[i] = sets[i].Field
@@ -176,21 +176,21 @@ func (q InsertQuery) InsertRow(sets ...qx.FieldValueSet) InsertQuery {
 	return q
 }
 
-func (q InsertQuery) Select(selectQuery SelectQuery) InsertQuery {
-	q.SelectQuery = &selectQuery
+func (q *InsertQuery) Select(selectQuery *SelectQuery) *InsertQuery {
+	q.SelectQuery = selectQuery
 	return q
 }
 
-func (q InsertQuery) OnConflict(fields ...qx.Field) insertConflict {
+func (q *InsertQuery) OnConflict(fields ...qx.Field) insertConflict {
 	q.HandleConflict = true
 	q.ConflictFields = fields
-	return insertConflict{insertQuery: &q}
+	return insertConflict{insertQuery: q}
 }
 
-func (q InsertQuery) OnConflictOnConstraint(name string) insertConflict {
+func (q *InsertQuery) OnConflictOnConstraint(name string) insertConflict {
 	q.HandleConflict = true
 	q.ConflictConstraint = name
-	return insertConflict{insertQuery: &q}
+	return insertConflict{insertQuery: q}
 }
 
 type insertConflict struct{ insertQuery *InsertQuery }
@@ -200,47 +200,47 @@ func (c insertConflict) Where(predicates ...qx.Predicate) insertConflict {
 	return c
 }
 
-func (c insertConflict) DoNothing() InsertQuery {
+func (c insertConflict) DoNothing() *InsertQuery {
 	if c.insertQuery == nil {
-		return InsertQuery{}
+		return &InsertQuery{}
 	}
-	return *c.insertQuery
+	return c.insertQuery
 }
 
-func (c insertConflict) DoUpdateSet(sets ...qx.FieldValueSet) InsertQuery {
+func (c insertConflict) DoUpdateSet(sets ...qx.FieldValueSet) *InsertQuery {
 	if c.insertQuery == nil {
-		return InsertQuery{}
+		return &InsertQuery{}
 	}
 	c.insertQuery.Resolution = append(c.insertQuery.Resolution, sets...)
-	return *c.insertQuery
+	return c.insertQuery
 }
 
 func Excluded(field qx.Field) qx.CustomField {
 	return qx.CustomField{Format: "EXCLUDED." + field.GetName()}
 }
 
-func (q InsertQuery) Where(predicates ...qx.Predicate) InsertQuery {
+func (q *InsertQuery) Where(predicates ...qx.Predicate) *InsertQuery {
 	q.ResolutionPredicates.Predicates = append(q.ResolutionPredicates.Predicates, predicates...)
 	return q
 }
 
-func (q InsertQuery) Returning(fields ...qx.Field) InsertQuery {
+func (q *InsertQuery) Returning(fields ...qx.Field) *InsertQuery {
 	q.ReturningFields = append(q.ReturningFields, fields...)
 	return q
 }
 
-func (q InsertQuery) Returningx(mapper func(Row), accumulator func()) InsertQuery {
+func (q *InsertQuery) Returningx(mapper func(Row), accumulator func()) *InsertQuery {
 	q.Mapper = mapper
 	q.Accumulator = accumulator
 	return q
 }
 
-func (q InsertQuery) ReturningRowx(mapper func(Row)) InsertQuery {
+func (q *InsertQuery) ReturningRowx(mapper func(Row)) *InsertQuery {
 	q.Mapper = mapper
 	return q
 }
 
-func (q InsertQuery) Exec(db qx.Queryer) (err error) {
+func (q *InsertQuery) Exec(db qx.Queryer) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			switch v := r.(type) {
@@ -295,26 +295,26 @@ func (q InsertQuery) Exec(db qx.Queryer) (err error) {
 	return r.QxRow.Rows.Err()
 }
 
-func (q InsertQuery) ExecWithLog(db qx.Queryer, log qx.Logger) error {
+func (q *InsertQuery) ExecWithLog(db qx.Queryer, log qx.Logger) error {
 	q.LogSkip += 1
 	q.Log = log
 	return q.Exec(db)
 }
 
-func (q InsertQuery) As(alias string) InsertQuery {
+func (q *InsertQuery) As(alias string) *InsertQuery {
 	q.Alias = alias
 	return q
 }
 
-func (q InsertQuery) GetAlias() string {
+func (q *InsertQuery) GetAlias() string {
 	return q.Alias
 }
 
-func (q InsertQuery) GetName() string {
+func (q *InsertQuery) GetName() string {
 	return ""
 }
 
-func (q InsertQuery) NestThis() qx.Query {
+func (q *InsertQuery) NestThis() qx.Query {
 	q.Nested = true
 	return q
 }

@@ -30,13 +30,6 @@ type Row interface {
 	Int_(qx.Field) int
 	IntValid(qx.NumberField) bool
 	IntValid_(qx.Field) bool
-	// // int32
-	// Int32(qx.NumberField) int32
-	// Int32_(qx.Field) int32
-	// Int32Valid(qx.NumberField) bool
-	// Int32Valid_(qx.Field) bool
-	// NullInt32(qx.NumberField) sql.NullInt32
-	// NullInt32_(qx.Field) sql.NullInt32
 	// int64
 	Int64(qx.NumberField) int64
 	Int64_(qx.Field) int64
@@ -115,5 +108,19 @@ func Queryf(format string, values ...interface{}) qx.CustomQuery {
 		Postgres: true,
 		Format:   format,
 		Values:   values,
+	}
+}
+
+type QueryOption func(qx.Query) qx.Query
+
+func WithLog(logger qx.Logger) func(qx.Query) qx.Query {
+	return func(q qx.Query) qx.Query {
+		switch q := q.(type) {
+		case *SelectQuery:
+			q.Log = logger
+			return q
+		default:
+			return q
+		}
 	}
 }

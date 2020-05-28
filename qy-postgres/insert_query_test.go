@@ -83,11 +83,14 @@ func TestInsertMisc1(t *testing.T) {
 		" FROM customer AS cust WHERE cust.address_id IN (SELECT address_id FROM C))"
 
 	cust := tables.CUSTOMER().As("cust")
-	q := NewInsertQuery().With(A, B, C, D)
-	q.Log = log.New(os.Stdout, "", log.Lshortfile)
+	i := func() *InsertQuery {
+		q := NewInsertQuery().With(A, B, C, D)
+		q.Log = log.New(os.Stdout, "", log.Lshortfile)
+		return q
+	}
 
 	// v1
-	v1 := q.InsertInto(cust).
+	v1 := i().InsertInto(cust).
 		Columns(cust.CUSTOMER_ID, cust.STORE_ID, cust.FIRST_NAME, cust.LAST_NAME, cust.ADDRESS_ID).
 		Select(
 			Select(
@@ -119,7 +122,7 @@ func TestInsertMisc1(t *testing.T) {
 	v1WantArgs := wantArgs
 
 	// v2
-	v2 := q.InsertInto(cust).
+	v2 := i().InsertInto(cust).
 		Columns(cust.CUSTOMER_ID, cust.STORE_ID, cust.FIRST_NAME, cust.LAST_NAME, cust.ADDRESS_ID).
 		Values(1, 1, "bob", "the builder", 1).
 		OnConflict(cust.CUSTOMER_ID).
