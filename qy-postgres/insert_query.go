@@ -40,6 +40,7 @@ type InsertQuery struct {
 	Accumulator func()
 	// Logging
 	Log     qx.Logger
+	LogFlag int
 	LogSkip int
 }
 

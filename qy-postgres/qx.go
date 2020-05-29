@@ -6,16 +6,6 @@ import (
 	"github.com/bokwoon95/qy/qx"
 )
 
-func NewCTE(name string, query qx.Query) qx.CTE {
-	return qx.CTE{
-		Name:  name,
-		Query: query,
-	}
-}
-
-func And(predicates ...qx.Predicate) qx.Predicate { return qx.And(predicates...) }
-func Or(predicates ...qx.Predicate) qx.Predicate  { return qx.Or(predicates...) }
-
 func Array(slice interface{}) qx.ArrayField { return qx.Array(slice) }
 func Bytes(b []byte) qx.BinaryField         { return qx.Bytes(b) }
 func Bool(b bool) qx.BooleanField           { return qx.Bool(b) }
@@ -36,3 +26,46 @@ type ValuesList = qx.ValuesList
 type Queryer = qx.Queryer
 type QueryerContext = qx.QueryerContext
 type Logger = qx.Logger
+
+func NewCTE(name string, query qx.Query) qx.CTE {
+	return qx.CTE{
+		Name:  name,
+		Query: query,
+	}
+}
+
+func And(predicates ...qx.Predicate) qx.Predicate {
+	return qx.VariadicPredicate{
+		Operator:   qx.PredicateAnd,
+		Predicates: predicates,
+	}
+}
+
+func Or(predicates ...qx.Predicate) qx.Predicate {
+	return qx.VariadicPredicate{
+		Operator:   qx.PredicateOr,
+		Predicates: predicates,
+	}
+}
+
+func Fieldf(format string, values ...interface{}) qx.CustomField {
+	return qx.CustomField{
+		Format: format,
+		Values: values,
+	}
+}
+
+func Predicatef(format string, values ...interface{}) qx.CustomPredicate {
+	return qx.CustomPredicate{
+		Format: format,
+		Values: values,
+	}
+}
+
+func Queryf(format string, values ...interface{}) qx.CustomQuery {
+	return qx.CustomQuery{
+		Postgres: true,
+		Format:   format,
+		Values:   values,
+	}
+}

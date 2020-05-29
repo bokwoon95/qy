@@ -8,6 +8,194 @@ import (
 	"github.com/lib/pq"
 )
 
+const (
+	LInterpolate = 1 << iota
+	LStats
+	LResults
+	LParse
+	LVerbose = LInterpolate | LStats | LResults
+)
+
+type BaseQuery struct {
+	DB      qx.DB
+	Log     qx.Logger
+	LogFlag int
+	CTEs    qx.CTEs
+}
+
+func WithLog(logger qx.Logger, flag int) BaseQuery {
+	return BaseQuery{
+		Log:     logger,
+		LogFlag: flag,
+	}
+}
+
+func WithDB(db qx.DB) BaseQuery {
+	return BaseQuery{
+		DB: db,
+	}
+}
+
+func With(CTEs ...qx.CTE) BaseQuery {
+	return BaseQuery{
+		CTEs: CTEs,
+	}
+}
+
+func (qy BaseQuery) WithLog(logger qx.Logger, flag int) BaseQuery {
+	qy.Log = logger
+	qy.LogFlag = flag
+	return qy
+}
+
+func (qy BaseQuery) WithDB(db qx.DB) BaseQuery {
+	qy.DB = db
+	return qy
+}
+
+func (qy BaseQuery) With(CTEs ...qx.CTE) BaseQuery {
+	qy.CTEs = CTEs
+	return qy
+}
+
+func (qy BaseQuery) From(table qx.Table) SelectQuery {
+	return SelectQuery{
+		FromTable: table,
+		Alias:     qx.RandomString(8),
+		CTEs:      qy.CTEs,
+		DB:        qy.DB,
+		Log:       qy.Log,
+		LogFlag:   qy.LogFlag,
+	}
+}
+
+func (qy BaseQuery) Select(fields ...qx.Field) SelectQuery {
+	return SelectQuery{
+		SelectFields: fields,
+		Alias:        qx.RandomString(8),
+		CTEs:         qy.CTEs,
+		DB:           qy.DB,
+		Log:          qy.Log,
+		LogFlag:      qy.LogFlag,
+	}
+}
+
+func (qy BaseQuery) SelectOne() SelectQuery {
+	return SelectQuery{
+		SelectFields: qx.Fields{qx.FieldLiteral("1")},
+		Alias:        qx.RandomString(8),
+		CTEs:         qy.CTEs,
+		DB:           qy.DB,
+		Log:          qy.Log,
+		LogFlag:      qy.LogFlag,
+	}
+}
+
+func (qy BaseQuery) SelectAll() SelectQuery {
+	return SelectQuery{
+		SelectFields: qx.Fields{qx.FieldLiteral("*")},
+		Alias:        qx.RandomString(8),
+		CTEs:         qy.CTEs,
+		DB:           qy.DB,
+		Log:          qy.Log,
+		LogFlag:      qy.LogFlag,
+	}
+}
+
+func (qy BaseQuery) SelectCount() SelectQuery {
+	return SelectQuery{
+		SelectFields: qx.Fields{qx.FieldLiteral("COUNT(*)")},
+		Alias:        qx.RandomString(8),
+		CTEs:         qy.CTEs,
+		DB:           qy.DB,
+		Log:          qy.Log,
+		LogFlag:      qy.LogFlag,
+	}
+}
+
+func (qy BaseQuery) SelectDistinct(fields ...qx.Field) SelectQuery {
+	return SelectQuery{
+		SelectType:   qx.SelectTypeDistinct,
+		SelectFields: fields,
+		Alias:        qx.RandomString(8),
+		CTEs:         qy.CTEs,
+		DB:           qy.DB,
+		Log:          qy.Log,
+		LogFlag:      qy.LogFlag,
+	}
+}
+
+func (qy BaseQuery) SelectDistinctOn(distinctFields ...qx.Field) func(...qx.Field) SelectQuery {
+	return func(fields ...qx.Field) SelectQuery {
+		return SelectQuery{
+			SelectType:   qx.SelectTypeDistinctOn,
+			DistinctOn:   distinctFields,
+			SelectFields: fields,
+			Alias:        qx.RandomString(8),
+			CTEs:         qy.CTEs,
+			DB:           qy.DB,
+			Log:          qy.Log,
+			LogFlag:      qy.LogFlag,
+		}
+	}
+}
+
+func (qy BaseQuery) Selectx(mapper func(Row), accumulator func()) SelectQuery {
+	return SelectQuery{
+		Mapper:      mapper,
+		Accumulator: accumulator,
+		Alias:       qx.RandomString(8),
+		CTEs:        qy.CTEs,
+		DB:          qy.DB,
+		Log:         qy.Log,
+		LogFlag:     qy.LogFlag,
+	}
+}
+
+func (qy BaseQuery) SelectRowx(mapper func(Row)) SelectQuery {
+	return SelectQuery{
+		Mapper:  mapper,
+		Alias:   qx.RandomString(8),
+		CTEs:    qy.CTEs,
+		DB:      qy.DB,
+		Log:     qy.Log,
+		LogFlag: qy.LogFlag,
+	}
+}
+
+func (qy BaseQuery) InsertInto(table qx.BaseTable) InsertQuery {
+	return InsertQuery{
+		IntoTable: table,
+		Alias:     qx.RandomString(8),
+		CTEs:      qy.CTEs,
+		DB:        qy.DB,
+		Log:       qy.Log,
+		LogFlag:   qy.LogFlag,
+	}
+}
+
+func (qy BaseQuery) Update(table qx.BaseTable) UpdateQuery {
+	return UpdateQuery{
+		UpdateTable: table,
+		Alias:       qx.RandomString(8),
+		CTEs:        qy.CTEs,
+		DB:          qy.DB,
+		Log:         qy.Log,
+		LogFlag:     qy.LogFlag,
+	}
+}
+
+func (qy BaseQuery) DeleteFrom(table qx.BaseTable) DeleteQuery {
+	return DeleteQuery{
+		FromTable: table,
+		Alias:     qx.RandomString(8),
+		CTEs:      qy.CTEs,
+		DB:        qy.DB,
+		Log:       qy.Log,
+		LogFlag:   qy.LogFlag,
+	}
+}
+
 type Row interface {
 	ScanArray(array interface{}, field qx.Field)
 	ScanInto(dest interface{}, field qx.Field)
@@ -64,214 +252,20 @@ type QyRow struct {
 // scans a postgres array into that slice. Only []bool, []float64, []int64 or
 // []string slices are supported.
 func (r *QyRow) ScanArray(array interface{}, f qx.Field) {
-	nothing := &sql.RawBytes{}
+	var nothing interface{}
 	if r.QxRow.Rows == nil {
 		r.QxRow.Fields = append(r.QxRow.Fields, f)
-		r.QxRow.Dest = append(r.QxRow.Dest, nothing)
+		r.QxRow.Dest = append(r.QxRow.Dest, pq.Array(array))
 		return
 	}
 	if len(r.QxRow.TmpDest) != len(r.QxRow.Dest) {
 		r.QxRow.TmpDest = make([]interface{}, len(r.QxRow.Dest))
 		for i := range r.QxRow.TmpDest {
-			r.QxRow.TmpDest[i] = nothing
+			r.QxRow.TmpDest[i] = &nothing
 		}
 	}
 	r.TmpDest[r.Index] = pq.Array(array)
 	r.Rows.Scan(r.TmpDest...)
-	r.TmpDest[r.Index] = nothing
+	r.TmpDest[r.Index] = &nothing
 	r.Index++
-}
-
-func Fieldf(format string, values ...interface{}) qx.CustomField {
-	return qx.CustomField{
-		Format: format,
-		Values: values,
-	}
-}
-
-func Predicatef(format string, values ...interface{}) qx.CustomPredicate {
-	return qx.CustomPredicate{
-		Format: format,
-		Values: values,
-	}
-}
-
-func Tablef(format string, values ...interface{}) qx.CustomTable {
-	return qx.CustomTable{
-		Format: format,
-		Values: values,
-	}
-}
-
-func Queryf(format string, values ...interface{}) qx.CustomQuery {
-	return qx.CustomQuery{
-		Postgres: true,
-		Format:   format,
-		Values:   values,
-	}
-}
-
-type BaseQuery struct {
-	DB   qx.DB
-	Log  qx.Logger
-	CTEs qx.CTEs
-}
-
-func WithLog(logger qx.Logger) BaseQuery {
-	return BaseQuery{
-		Log: logger,
-	}
-}
-
-func WithDB(db qx.DB) BaseQuery {
-	return BaseQuery{
-		DB: db,
-	}
-}
-
-func With(CTEs ...qx.CTE) BaseQuery {
-	return BaseQuery{
-		CTEs: CTEs,
-	}
-}
-
-func (qy BaseQuery) WithLog(logger qx.Logger) BaseQuery {
-	qy.Log = logger
-	return qy
-}
-
-func (qy BaseQuery) WithDB(db qx.DB) BaseQuery {
-	qy.DB = db
-	return qy
-}
-
-func (qy BaseQuery) With(CTEs ...qx.CTE) BaseQuery {
-	qy.CTEs = CTEs
-	return qy
-}
-
-func (qy BaseQuery) From(table qx.Table) SelectQuery {
-	return SelectQuery{
-		FromTable: table,
-		Alias:     qx.RandomString(8),
-		CTEs:      qy.CTEs,
-		DB:        qy.DB,
-		Log:       qy.Log,
-	}
-}
-
-func (qy BaseQuery) Select(fields ...qx.Field) SelectQuery {
-	return SelectQuery{
-		SelectFields: fields,
-		Alias:        qx.RandomString(8),
-		CTEs:         qy.CTEs,
-		Log:          qy.Log,
-		DB:           qy.DB,
-	}
-}
-
-func (qy BaseQuery) SelectOne() SelectQuery {
-	return SelectQuery{
-		SelectFields: qx.Fields{qx.FieldLiteral("1")},
-		Alias:        qx.RandomString(8),
-		CTEs:         qy.CTEs,
-		Log:          qy.Log,
-		DB:           qy.DB,
-	}
-}
-
-func (qy BaseQuery) SelectAll() SelectQuery {
-	return SelectQuery{
-		SelectFields: qx.Fields{qx.FieldLiteral("*")},
-		Alias:        qx.RandomString(8),
-		CTEs:         qy.CTEs,
-		Log:          qy.Log,
-		DB:           qy.DB,
-	}
-}
-
-func (qy BaseQuery) SelectCount() SelectQuery {
-	return SelectQuery{
-		SelectFields: qx.Fields{qx.FieldLiteral("COUNT(*)")},
-		Alias:        qx.RandomString(8),
-		CTEs:         qy.CTEs,
-		Log:          qy.Log,
-		DB:           qy.DB,
-	}
-}
-
-func (qy BaseQuery) SelectDistinct(fields ...qx.Field) SelectQuery {
-	return SelectQuery{
-		SelectType:   qx.SelectTypeDistinct,
-		SelectFields: fields,
-		Alias:        qx.RandomString(8),
-		CTEs:         qy.CTEs,
-		DB:           qy.DB,
-		Log:          qy.Log,
-	}
-}
-
-func (qy BaseQuery) SelectDistinctOn(distinctFields ...qx.Field) func(...qx.Field) SelectQuery {
-	return func(fields ...qx.Field) SelectQuery {
-		return SelectQuery{
-			SelectType:   qx.SelectTypeDistinctOn,
-			DistinctOn:   distinctFields,
-			SelectFields: fields,
-			Alias:        qx.RandomString(8),
-			CTEs:         qy.CTEs,
-			DB:           qy.DB,
-			Log:          qy.Log,
-		}
-	}
-}
-
-func (qy BaseQuery) Selectx(mapper func(Row), accumulator func()) SelectQuery {
-	return SelectQuery{
-		Mapper:      mapper,
-		Accumulator: accumulator,
-		Alias:       qx.RandomString(8),
-		CTEs:        qy.CTEs,
-		DB:          qy.DB,
-		Log:         qy.Log,
-	}
-}
-
-func (qy BaseQuery) SelectRowx(mapper func(Row)) SelectQuery {
-	return SelectQuery{
-		Mapper: mapper,
-		Alias:  qx.RandomString(8),
-		CTEs:   qy.CTEs,
-		DB:     qy.DB,
-		Log:    qy.Log,
-	}
-}
-
-func (qy BaseQuery) InsertInto(table qx.BaseTable) InsertQuery {
-	return InsertQuery{
-		IntoTable: table,
-		Alias:     qx.RandomString(8),
-		CTEs:      qy.CTEs,
-		DB:        qy.DB,
-		Log:       qy.Log,
-	}
-}
-
-func (qy BaseQuery) Update(table qx.BaseTable) UpdateQuery {
-	return UpdateQuery{
-		UpdateTable: table,
-		Alias:       qx.RandomString(8),
-		CTEs:        qy.CTEs,
-		DB:          qy.DB,
-		Log:         qy.Log,
-	}
-}
-
-func (qy BaseQuery) DeleteFrom(table qx.BaseTable) DeleteQuery {
-	return DeleteQuery{
-		FromTable: table,
-		Alias:     qx.RandomString(8),
-		CTEs:      qy.CTEs,
-		DB:        qy.DB,
-		Log:       qy.Log,
-	}
 }
