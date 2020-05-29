@@ -121,13 +121,23 @@ func (q SelectQuery) ToSQL() (string, []interface{}) {
 	query := buf.String()
 	if !q.Nested {
 		query = qx.MySQLToPostgresPlaceholders(query)
-		switch q.Log.(type) {
-		case nil:
-			// do nothing
-		case *log.Logger:
-			q.Log.Output(q.LogSkip+2, qx.PostgresInterpolateSQL(query, args...))
-		default:
-			q.Log.Output(q.LogSkip+1, qx.PostgresInterpolateSQL(query, args...))
+		if q.Log != nil {
+			var logOutput string
+			switch {
+			case LStats&q.LogFlag != 0:
+				logOutput = "\n----[ Executing query ]----\n" + query + " " + fmt.Sprint(args) +
+					"\n----[ with bind values ]----\n" + qx.PostgresInterpolateSQL(query, args...)
+			case LInterpolate&q.LogFlag != 0:
+				logOutput = "Executing query: " + qx.PostgresInterpolateSQL(query, args...)
+			default:
+				logOutput = "Executing query: " + query + " " + fmt.Sprint(args)
+			}
+			switch q.Log.(type) {
+			case *log.Logger:
+				q.Log.Output(q.LogSkip+2, logOutput)
+			default:
+				q.Log.Output(q.LogSkip+1, logOutput)
+			}
 		}
 	}
 	return query, args
@@ -360,6 +370,7 @@ func (q SelectQuery) FetchContext(ctx context.Context, db qx.DB) (err error) {
 	}
 	q.LogSkip += 1
 	query, args := q.ToSQL()
+	q.LogSkip -= 1
 	if ctx == nil {
 		r.QxRow.Rows, err = db.Query(query, args...)
 	} else {
@@ -369,11 +380,21 @@ func (q SelectQuery) FetchContext(ctx context.Context, db qx.DB) (err error) {
 		return err
 	}
 	defer r.QxRow.Rows.Close()
-	var rowcount int
+	switch q.Log.(type) {
+	case *log.Logger:
+		q.LogSkip += 2
+	default:
+		q.LogSkip += 1
+	}
 	if len(r.QxRow.Dest) == 0 {
 		// If there's nothing to scan into, return early
+		if q.Log != nil {
+			q.Log.Output(q.LogSkip, "no columns specified in query")
+		}
 		return nil
 	}
+	buf := &strings.Builder{}
+	var rowcount int
 	for r.QxRow.Rows.Next() {
 		rowcount++
 		err = r.QxRow.Rows.Scan(r.QxRow.Dest...)
@@ -388,12 +409,28 @@ func (q SelectQuery) FetchContext(ctx context.Context, db qx.DB) (err error) {
 			}
 			return fmt.Errorf("Please check if your mapper function is correct:%s\n%w", buf.String(), err)
 		}
+		if LResults&q.LogFlag != 0 && q.Log != nil && rowcount <= 5 {
+			buf.WriteString("\n----[ Row " + strconv.Itoa(rowcount) + " ]----")
+			for i := range r.QxRow.Dest {
+				q, a := r.QxRow.Fields[i].ToSQLExclude(nil)
+				buf.WriteString("\n" + qx.MySQLInterpolateSQL(q, a...) + fmt.Sprintf(": %#v", r.QxRow.Dest[i]))
+			}
+		}
 		r.QxRow.Index = 0 // index must always be reset back to 0 before mapper is called
 		q.Mapper(r)
 		if q.Accumulator == nil {
 			break
 		}
 		q.Accumulator()
+	}
+	if rowcount > 5 {
+		buf.WriteString("\n...")
+	}
+	if LStats&q.LogFlag != 0 {
+		buf.WriteString("\nFetched " + strconv.Itoa(rowcount) + " rows")
+	}
+	if buf.Len() > 0 {
+		q.Log.Output(q.LogSkip, buf.String())
 	}
 	if rowcount == 0 && q.Accumulator == nil {
 		return sql.ErrNoRows
