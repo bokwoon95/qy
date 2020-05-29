@@ -1,6 +1,7 @@
 package qx
 
 import (
+	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
@@ -225,6 +226,51 @@ func ArgToString(arg interface{}) string {
 		} else {
 			str = "'" + string(b) + "'"
 		}
+	}
+	return str
+}
+
+func ArgToStringV2(arg interface{}) string {
+	var str string // str is the SQL string representation of arg
+	switch v := arg.(type) {
+	case nil:
+		str = "𝗡𝗨𝗟𝗟"
+	case *sql.NullBool:
+		if v.Valid {
+			if v.Bool {
+				str = "true"
+			} else {
+				str = "false"
+			}
+		} else {
+			str = "𝗡𝗨𝗟𝗟"
+		}
+	case *sql.NullFloat64:
+		if v.Valid {
+			str = fmt.Sprintf("%f", v.Float64)
+		} else {
+			str = "𝗡𝗨𝗟𝗟"
+		}
+	case *sql.NullInt64:
+		if v.Valid {
+			str = strconv.FormatInt(v.Int64, 10)
+		} else {
+			str = "𝗡𝗨𝗟𝗟"
+		}
+	case *sql.NullString:
+		if v.Valid {
+			str = v.String
+		} else {
+			str = "𝗡𝗨𝗟𝗟"
+		}
+	case *sql.NullTime:
+		if v.Valid {
+			str = v.Time.String()
+		} else {
+			str = "𝗡𝗨𝗟𝗟"
+		}
+	default:
+		str = fmt.Sprintf("%#v", arg)
 	}
 	return str
 }

@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/bokwoon95/qy/qx"
 )
@@ -96,13 +97,23 @@ func (q UpdateQuery) ToSQL() (string, []interface{}) {
 	query := buf.String()
 	if !q.Nested {
 		query = qx.MySQLToPostgresPlaceholders(query)
-		switch q.Log.(type) {
-		case nil:
-			// do nothing
-		case *log.Logger:
-			q.Log.Output(q.LogSkip+2, qx.PostgresInterpolateSQL(query, args...))
-		default:
-			q.Log.Output(q.LogSkip+1, qx.PostgresInterpolateSQL(query, args...))
+		if q.Log != nil {
+			var logOutput string
+			switch {
+			case LStats&q.LogFlag != 0:
+				logOutput = "\n----[ Executing query ]----\n" + query + " " + fmt.Sprint(args) +
+					"\n----[ with bind values ]----\n" + qx.PostgresInterpolateSQL(query, args...)
+			case LInterpolate&q.LogFlag != 0:
+				logOutput = "Executing query: " + qx.PostgresInterpolateSQL(query, args...)
+			default:
+				logOutput = "Executing query: " + query + " " + fmt.Sprint(args)
+			}
+			switch q.Log.(type) {
+			case *log.Logger:
+				q.Log.Output(q.LogSkip+2, logOutput)
+			default:
+				q.Log.Output(q.LogSkip+1, logOutput)
+			}
 		}
 	}
 	return query, args
@@ -243,6 +254,30 @@ func (q UpdateQuery) FetchContext(ctx context.Context, db qx.DB) (err error) {
 			}
 		}
 	}()
+	logBuf := &strings.Builder{}
+	var rowcount int
+	defer func() func() {
+		var logskip int
+		switch q.Log.(type) {
+		case *log.Logger:
+			logskip = q.LogSkip + 2
+		default:
+			logskip = q.LogSkip + 1
+		}
+		start := time.Now()
+		return func() {
+			elapsed := time.Since(start)
+			if LResults&q.LogFlag != 0 && q.Log != nil && rowcount > 5 {
+				logBuf.WriteString("\n...")
+			}
+			if LStats&q.LogFlag != 0 && q.Log != nil {
+				logBuf.WriteString("\n(Fetched " + strconv.Itoa(rowcount) + " rows in " + elapsed.String() + ")")
+			}
+			if logBuf.Len() > 0 && q.Log != nil {
+				q.Log.Output(logskip, logBuf.String())
+			}
+		}
+	}()()
 	if db == nil {
 		if q.DB == nil {
 			return errors.New("DB cannot be nil")
@@ -265,7 +300,6 @@ func (q UpdateQuery) FetchContext(ctx context.Context, db qx.DB) (err error) {
 		return err
 	}
 	defer r.QxRow.Rows.Close()
-	var rowcount int
 	if len(r.QxRow.Dest) == 0 {
 		// If there's nothing to scan into, return early
 		return nil
@@ -283,6 +317,13 @@ func (q UpdateQuery) FetchContext(ctx context.Context, db qx.DB) (err error) {
 					reflect.TypeOf(r.QxRow.Dest[i]).String())
 			}
 			return fmt.Errorf("Please check if your mapper function is correct:%s\n%w", buf.String(), err)
+		}
+		if LResults&q.LogFlag != 0 && q.Log != nil && rowcount <= 5 {
+			logBuf.WriteString("\n----[ Row " + strconv.Itoa(rowcount) + " ]----")
+			for i := range r.QxRow.Dest {
+				q, a := r.QxRow.Fields[i].ToSQLExclude(nil)
+				logBuf.WriteString("\n" + qx.MySQLInterpolateSQL(q, a...) + ": " + qx.ArgToStringV2(r.QxRow.Dest[i]))
+			}
 		}
 		r.QxRow.Index = 0 // index must always be reset back to 0 before mapper is called
 		q.Mapper(r)

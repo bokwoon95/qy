@@ -13,7 +13,7 @@ const (
 	LStats
 	LResults
 	LParse
-	LVerbose = LInterpolate | LStats | LResults
+	LVerbose = LStats | LResults
 )
 
 type BaseQuery struct {
